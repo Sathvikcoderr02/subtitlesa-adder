@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubtitleCraft - AI Video Subtitle Generator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="background-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="url(#gradient)"/>
+          <path d="M12 14h16M12 20h16M12 26h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <defs></defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+              <stop offset="0%" stop-color="#667eea"/>
+              <stop offset="100%" stop-color="#764ba2"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>SubtitleCraft</span>
+      </div>
+      <p class="tagline">Transform your videos with beautiful subtitles</p>
+    </div>
+    
+    <div class="upload-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        <h2>Upload Video</h2>
+      </div>
+      <label for="videoFile" class="file-upload-area">
+        <div class="upload-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+        </div>
+        <div class="upload-text">
+          <span class="upload-title">Click to upload or drag and drop</span>
+          <span class="upload-subtitle">MP4, AVI, MOV, or MKV (max 500MB)</span>
+        </div>
+        <input type="file" id="videoFile" accept="video/*" required>
+      </label>
+      <div id="fileName" class="file-name"></div>
+    </div>
+
+    <div class="style-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <h2>Subtitle Style</h2>
+      </div>
+      <div class="style-grid">
+        <label class="style-option">
+          <input type="radio" name="subtitleStyle" value="classic" checked>
+          <div class="style-card">
+            <div class="style-preview classic-preview">
+              <span>Classic</span>
+            </div>
+            <div class="style-name">Classic</div>
+            <div class="style-desc">White text, black outline</div>
+          </div>
+        </label>
+        
+        <label class="style-option">
+          <input type="radio" name="subtitleStyle" value="modern">
+          <div class="style-card">
+            <div class="style-preview modern-preview">
+              <span>Modern</span>
+            </div>
+            <div class="style-name">Modern</div>
+            <div class="style-desc">Yellow text, bold style</div>
+          </div>
+        </label>
+        
+        <label class="style-option">
+          <input type="radio" name="subtitleStyle" value="minimal">
+          <div class="style-card">
+            <div class="style-preview minimal-preview">
+              <span>Minimal</span>
+            </div>
+            <div class="style-name">Minimal</div>
+            <div class="style-desc">Clean white, subtle shadow</div>
+          </div>
+        </label>
+        
+        <label class="style-option">
+          <input type="radio" name="subtitleStyle" value="bold">
+          <div class="style-card">
+            <div class="style-preview bold-preview">
+              <span>Bold</span>
+            </div>
+            <div class="style-name">Bold</div>
+            <div class="style-desc">Large text, strong outline</div>
+          </div>
+        </label>
+        
+        <label class="style-option">
+          <input type="radio" name="subtitleStyle" value="neon">
+          <div class="style-card">
+            <div class="style-preview neon-preview">
+              <span>Neon</span>
+            </div>
+            <div class="style-name">Neon</div>
+            <div class="style-desc">Cyan glow effect</div>
+          </div>
+        </label>
+        
+        <label class="style-option">
+          <input type="radio" name="subtitleStyle" value="boxed">
+          <div class="style-card">
+            <div class="style-preview boxed-preview">
+              <span>Boxed</span>
+            </div>
+            <div class="style-name">Boxed</div>
+            <div class="style-desc">Background box style</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="font-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
+        </svg>
+        <h2>Font Family</h2>
+      </div>
+      <div class="font-grid">
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Arial" checked>
+          <div class="font-card">
+            <div class="font-preview" style="font-family: Arial, sans-serif;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Arial</div>
+            <div class="font-desc">Clean & universal</div>
+          </div>
+        </label>
+        
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Helvetica">
+          <div class="font-card">
+            <div class="font-preview" style="font-family: Helvetica, sans-serif;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Helvetica</div>
+            <div class="font-desc">Modern & sleek</div>
+          </div>
+        </label>
+        
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Impact">
+          <div class="font-card">
+            <div class="font-preview" style="font-family: Impact, sans-serif;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Impact</div>
+            <div class="font-desc">Bold & strong</div>
+          </div>
+        </label>
+        
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Georgia">
+          <div class="font-card">
+            <div class="font-preview" style="font-family: Georgia, serif;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Georgia</div>
+            <div class="font-desc">Elegant serif</div>
+          </div>
+        </label>
+        
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Courier New">
+          <div class="font-card">
+            <div class="font-preview" style="font-family: 'Courier New', monospace;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Courier</div>
+            <div class="font-desc">Monospace style</div>
+          </div>
+        </label>
+        
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Verdana">
+          <div class="font-card">
+            <div class="font-preview" style="font-family: Verdana, sans-serif;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Verdana</div>
+            <div class="font-desc">Readable & clear</div>
+          </div>
+        </label>
+        
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Times New Roman">
+          <div class="font-card">
+            <div class="font-preview" style="font-family: 'Times New Roman', serif;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Times</div>
+            <div class="font-desc">Classic serif</div>
+          </div>
+        </label>
+        
+        <label class="font-option">
+          <input type="radio" name="fontFamily" value="Comic Sans MS">
+          <div class="font-card">
+            <div class="font-preview" style="font-family: 'Comic Sans MS', cursive;">
+              <span>Aa</span>
+            </div>
+            <div class="font-name">Comic Sans</div>
+            <div class="font-desc">Casual & fun</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="subtitle-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <line x1="9" y1="10" x2="15" y2="10"/>
+          <line x1="9" y1="14" x2="13" y2="14"/>
+        </svg>
+        <h2>Subtitle Timeline</h2>
+      </div>
+      <div id="subtitleList" class="subtitle-list"></div>
+      <button onclick="addSubtitle()" class="btn-add">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Subtitle
+      </button>
+    </div>
+
+    <button onclick="processVideo()" class="btn-process" id="processBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+      Generate Video with Subtitles
+    </button>
+    
+    <div id="status" class="status-message"></div>
+    <div id="result" class="result-section"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
