@@ -61,12 +61,18 @@ async function processVideo() {
   
   const selectedStyle = document.querySelector('input[name="subtitleStyle"]:checked').value;
   const selectedFont = document.querySelector('input[name="fontFamily"]:checked').value;
+  const selectedColor = document.querySelector('input[name="textColor"]:checked').value;
+  const selectedPosition = document.querySelector('input[name="subtitlePosition"]:checked').value;
+  const selectedBgColor = document.querySelector('input[name="bgColor"]:checked').value;
   
   const formData = new FormData();
   formData.append('video', videoFile);
   formData.append('subtitles', JSON.stringify(subtitles));
   formData.append('style', selectedStyle);
   formData.append('font', selectedFont);
+  formData.append('color', selectedColor);
+  formData.append('position', selectedPosition);
+  formData.append('bgColor', selectedBgColor);
   
   processBtn.disabled = true;
   showStatus('Processing video... This may take a few minutes', 'processing');
