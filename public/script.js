@@ -64,6 +64,7 @@ async function processVideo() {
   const selectedColor = document.querySelector('input[name="textColor"]:checked').value;
   const selectedPosition = document.querySelector('input[name="subtitlePosition"]:checked').value;
   const selectedBgColor = document.querySelector('input[name="bgColor"]:checked').value;
+  const selectedAnimation = document.querySelector('input[name="animation"]:checked').value;
   
   const formData = new FormData();
   formData.append('video', videoFile);
@@ -73,6 +74,7 @@ async function processVideo() {
   formData.append('color', selectedColor);
   formData.append('position', selectedPosition);
   formData.append('bgColor', selectedBgColor);
+  formData.append('animation', selectedAnimation);
   
   processBtn.disabled = true;
   showStatus('Processing video... This may take a few minutes', 'processing');
