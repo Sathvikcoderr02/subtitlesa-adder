@@ -5,6 +5,19 @@ document.getElementById('videoFile').addEventListener('change', (e) => {
   document.getElementById('fileName').textContent = fileName ? `Selected: ${fileName}` : '';
 });
 
+// Show/hide effect color section based on animation selection
+document.querySelectorAll('input[name="animation"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    const effectSection = document.getElementById('effectColorSection');
+    if (e.target.value === 'word-highlight' || e.target.value === 'word-fill') {
+      effectSection.style.display = 'block';
+      effectSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      effectSection.style.display = 'none';
+    }
+  });
+});
+
 function addSubtitle() {
   subtitleCount++;
   const subtitleList = document.getElementById('subtitleList');
@@ -66,13 +79,15 @@ async function processVideo() {
   let selectedFontSize = document.querySelector('input[name="fontSize"]:checked').value;
   if (selectedFontSize === 'custom') {
     const customValue = parseInt(document.getElementById('customFontSize').value);
-    // Validate custom value is within range (8-108), default to 24 if invalid
-    selectedFontSize = (customValue >= 8 && customValue <= 108) ? customValue : 24;
+    // Validate custom value is within range (8-200), default to 24 if invalid
+    selectedFontSize = (customValue >= 8 && customValue <= 200) ? customValue : 24;
   }
   const selectedColor = document.querySelector('input[name="textColor"]:checked').value;
   const selectedPosition = document.querySelector('input[name="subtitlePosition"]:checked').value;
   const selectedBgColor = document.querySelector('input[name="bgColor"]:checked').value;
   const selectedAnimation = document.querySelector('input[name="animation"]:checked').value;
+  const selectedEffectColor = document.querySelector('input[name="effectColor"]:checked')?.value || '&H00D7FF&';
+  const selectedWordsPerLine = parseInt(document.querySelector('input[name="wordsPerLine"]:checked').value) || 0;
 
   const formData = new FormData();
   formData.append('video', videoFile);
@@ -84,6 +99,8 @@ async function processVideo() {
   formData.append('position', selectedPosition);
   formData.append('bgColor', selectedBgColor);
   formData.append('animation', selectedAnimation);
+  formData.append('effectColor', selectedEffectColor);
+  formData.append('wordsPerLine', selectedWordsPerLine);
   
   processBtn.disabled = true;
   showStatus('Processing video... This may take a few minutes', 'processing');

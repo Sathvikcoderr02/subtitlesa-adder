@@ -739,6 +739,129 @@ body {
   100% { width: 0; }
 }
 
+/* Word highlight animation (karaoke style) */
+.anim-word-highlight {
+  display: inline-block;
+  font-size: 11px;
+  animation: wordHighlightDemo 3s infinite;
+}
+
+@keyframes wordHighlightDemo {
+  0%, 15% {
+    background: linear-gradient(90deg, rgba(255,215,0,0.7) 0%, rgba(255,215,0,0.7) 40%, transparent 40%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  35%, 50% {
+    background: linear-gradient(90deg, transparent 0%, transparent 45%, rgba(255,215,0,0.7) 45%, rgba(255,215,0,0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  70%, 100% {
+    background: linear-gradient(90deg, rgba(255,215,0,0.7) 0%, rgba(255,215,0,0.7) 40%, transparent 40%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+
+/* Word fill animation (progressive color change) */
+.anim-word-fill {
+  display: inline-block;
+  font-size: 11px;
+  animation: wordFillDemo 3s infinite;
+}
+
+@keyframes wordFillDemo {
+  0%, 10% {
+    color: white;
+  }
+  30% {
+    background: linear-gradient(90deg, #FFD700 45%, white 45%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  60% {
+    background: linear-gradient(90deg, #FFD700 90%, white 90%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  80%, 100% {
+    color: #FFD700;
+    -webkit-text-fill-color: #FFD700;
+  }
+}
+
+/* Effect color section styling */
+.effect-color-section {
+  animation: fadeInUp 0.3s ease;
+}
+
+.effect-color-section .section-hint {
+  color: #a0a0b8;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Words per line section styling */
+.words-per-line-section .section-hint {
+  color: #a0a0b8;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.words-per-line-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.wpl-option {
+  cursor: pointer;
+}
+
+.wpl-option input[type="radio"] {
+  display: none;
+}
+
+.wpl-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px 12px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.wpl-option input[type="radio"]:checked + .wpl-card {
+  border-color: var(--accent);
+  background: rgba(72, 219, 251, 0.1);
+}
+
+.wpl-card:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.wpl-value {
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.wpl-desc {
+  color: #a0a0b8;
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .words-per-line-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .animation-name {
   color: white;
   font-weight: 600;

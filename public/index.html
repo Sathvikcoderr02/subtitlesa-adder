@@ -326,7 +326,7 @@
               <span style="font-size: 14px;">Aa</span>
             </div>
             <div class="font-size-name">Small</div>
-            <div class="font-size-desc">16px</div>
+            <div class="font-size-desc">16pt</div>
           </div>
         </label>
 
@@ -337,7 +337,7 @@
               <span style="font-size: 20px;">Aa</span>
             </div>
             <div class="font-size-name">Medium</div>
-            <div class="font-size-desc">24px</div>
+            <div class="font-size-desc">24pt</div>
           </div>
         </label>
 
@@ -348,7 +348,7 @@
               <span style="font-size: 26px;">Aa</span>
             </div>
             <div class="font-size-name">Large</div>
-            <div class="font-size-desc">32px</div>
+            <div class="font-size-desc">32pt</div>
           </div>
         </label>
 
@@ -359,7 +359,7 @@
               <span style="font-size: 32px;">Aa</span>
             </div>
             <div class="font-size-name">Extra Large</div>
-            <div class="font-size-desc">40px</div>
+            <div class="font-size-desc">40pt</div>
           </div>
         </label>
 
@@ -370,7 +370,7 @@
               <span style="font-size: 36px;">Aa</span>
             </div>
             <div class="font-size-name">Huge</div>
-            <div class="font-size-desc">48px</div>
+            <div class="font-size-desc">48pt</div>
           </div>
         </label>
 
@@ -381,7 +381,7 @@
               <span style="font-size: 42px;">Aa</span>
             </div>
             <div class="font-size-name">Giant</div>
-            <div class="font-size-desc">64px</div>
+            <div class="font-size-desc">64pt</div>
           </div>
         </label>
 
@@ -389,10 +389,10 @@
           <input type="radio" name="fontSize" value="custom">
           <div class="font-size-card custom-size-card">
             <div class="font-size-preview">
-              <input type="number" id="customFontSize" min="8" max="108" value="72" placeholder="px">
+              <input type="number" id="customFontSize" min="8" max="200" value="72" placeholder="pt">
             </div>
             <div class="font-size-name">Custom</div>
-            <div class="font-size-desc">8-108px</div>
+            <div class="font-size-desc">8-200pt</div>
           </div>
         </label>
       </div>
@@ -796,6 +796,157 @@
             </div>
             <div class="animation-name">Typewriter</div>
             <div class="animation-desc">Letter by letter</div>
+          </div>
+        </label>
+
+        <label class="animation-option">
+          <input type="radio" name="animation" value="word-highlight">
+          <div class="animation-card">
+            <div class="animation-preview">
+              <span class="anim-word-highlight">Hello World</span>
+            </div>
+            <div class="animation-name">Word Highlight</div>
+            <div class="animation-desc">Karaoke box</div>
+          </div>
+        </label>
+
+        <label class="animation-option">
+          <input type="radio" name="animation" value="word-fill">
+          <div class="animation-card">
+            <div class="animation-preview">
+              <span class="anim-word-fill">Hello World</span>
+            </div>
+            <div class="animation-name">Word Fill</div>
+            <div class="animation-desc">Progressive color</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Effect Color Section (shown only for word effects) -->
+    <div class="effect-color-section card" id="effectColorSection" style="display: none;">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 2a10 10 0 0 1 0 20"/>
+          <path d="M12 2a10 10 0 0 0 0 20"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+        </svg>
+        <h2>Effect Color</h2>
+      </div>
+      <p class="section-hint">Choose the highlight/fill color for word effects</p>
+      <div class="color-grid">
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&H00D7FF&" checked>
+          <div class="color-card">
+            <div class="color-preview" style="background: #FFD700;"></div>
+            <div class="color-name">Yellow</div>
+          </div>
+        </label>
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&HFFFF00&">
+          <div class="color-card">
+            <div class="color-preview" style="background: #00FFFF;"></div>
+            <div class="color-name">Cyan</div>
+          </div>
+        </label>
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&H00FF00&">
+          <div class="color-card">
+            <div class="color-preview" style="background: #00FF00;"></div>
+            <div class="color-name">Green</div>
+          </div>
+        </label>
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&H0000FF&">
+          <div class="color-card">
+            <div class="color-preview" style="background: #FF0000;"></div>
+            <div class="color-name">Red</div>
+          </div>
+        </label>
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&HFF0000&">
+          <div class="color-card">
+            <div class="color-preview" style="background: #0000FF;"></div>
+            <div class="color-name">Blue</div>
+          </div>
+        </label>
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&HFF00FF&">
+          <div class="color-card">
+            <div class="color-preview" style="background: #FF00FF;"></div>
+            <div class="color-name">Purple</div>
+          </div>
+        </label>
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&H0080FF&">
+          <div class="color-card">
+            <div class="color-preview" style="background: #FF8000;"></div>
+            <div class="color-name">Orange</div>
+          </div>
+        </label>
+        <label class="color-option">
+          <input type="radio" name="effectColor" value="&HFF80FF&">
+          <div class="color-card">
+            <div class="color-preview" style="background: #FF80FF;"></div>
+            <div class="color-name">Pink</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Words Per Line Section -->
+    <div class="words-per-line-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="16" y2="12"/>
+          <line x1="3" y1="18" x2="12" y2="18"/>
+        </svg>
+        <h2>Words Per Line</h2>
+      </div>
+      <p class="section-hint">Control how many words appear on each line of the subtitle</p>
+      <div class="words-per-line-grid">
+        <label class="wpl-option">
+          <input type="radio" name="wordsPerLine" value="0" checked>
+          <div class="wpl-card">
+            <div class="wpl-value">Auto</div>
+            <div class="wpl-desc">No limit</div>
+          </div>
+        </label>
+        <label class="wpl-option">
+          <input type="radio" name="wordsPerLine" value="2">
+          <div class="wpl-card">
+            <div class="wpl-value">2</div>
+            <div class="wpl-desc">words/line</div>
+          </div>
+        </label>
+        <label class="wpl-option">
+          <input type="radio" name="wordsPerLine" value="3">
+          <div class="wpl-card">
+            <div class="wpl-value">3</div>
+            <div class="wpl-desc">words/line</div>
+          </div>
+        </label>
+        <label class="wpl-option">
+          <input type="radio" name="wordsPerLine" value="4">
+          <div class="wpl-card">
+            <div class="wpl-value">4</div>
+            <div class="wpl-desc">words/line</div>
+          </div>
+        </label>
+        <label class="wpl-option">
+          <input type="radio" name="wordsPerLine" value="5">
+          <div class="wpl-card">
+            <div class="wpl-value">5</div>
+            <div class="wpl-desc">words/line</div>
+          </div>
+        </label>
+        <label class="wpl-option">
+          <input type="radio" name="wordsPerLine" value="6">
+          <div class="wpl-card">
+            <div class="wpl-value">6</div>
+            <div class="wpl-desc">words/line</div>
           </div>
         </label>
       </div>

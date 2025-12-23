@@ -46,6 +46,190 @@ function escapeFFmpegPath(filePath) {
     .replace(/\]/g, '\\]');
 }
 
+// Helper function to calculate even word timings for karaoke effects
+function calculateWordTimings(subtitle) {
+  const { text, startTime, endTime } = subtitle;
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return [];
+
+  const duration = endTime - startTime;
+  const buffer = duration * 0.05; // 5% buffer at start/end
+  const effectiveStart = startTime + buffer;
+  const wordDuration = (duration - buffer * 2) / words.length;
+
+  return words.map((word, i) => ({
+    word,
+    start: effectiveStart + (i * wordDuration),
+    end: effectiveStart + ((i + 1) * wordDuration)
+  }));
+}
+
+// Helper function to calculate word X positions for natural text flow
+function calculateWordPositions(words, fontSize) {
+  const charWidth = fontSize * 0.52;  // Character width estimation (average)
+  const spaceWidth = fontSize * 0.5;  // Space between words
+  let x = 0;
+  const positions = words.map(word => {
+    const pos = { word, xOffset: Math.round(x) };
+    x += (word.length * charWidth) + spaceWidth;
+    return pos;
+  });
+  return { positions, totalWidth: Math.max(1, Math.round(x - spaceWidth)) };
+}
+
+// Helper function to convert BGR color to FFmpeg hex format
+function convertBGRtoHex(bgrColor) {
+  const colorHex = bgrColor.replace('&H', '').replace('&', '');
+  const b = parseInt(colorHex.substr(0, 2), 16);
+  const g = parseInt(colorHex.substr(2, 2), 16);
+  const r = parseInt(colorHex.substr(4, 2), 16);
+  return `0x${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+// Helper function to split text into lines by words per line
+function splitTextByWordsPerLine(text, wordsPerLine) {
+  if (!wordsPerLine || wordsPerLine <= 0) return text; // No splitting if 0 or not set
+
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  if (words.length <= wordsPerLine) return text; // No need to split if already fits
+
+  const lines = [];
+  for (let i = 0; i < words.length; i += wordsPerLine) {
+    lines.push(words.slice(i, i + wordsPerLine).join(' '));
+  }
+  return lines.join('\\N'); // \\N is ASS line break
+}
+
+// Create word-by-word highlight filter (karaoke style with background box)
+function createWordHighlightFilter(subtitle, font, baseColor, highlightColor, position, bgColor, fontSize, wordsPerLine = 0) {
+  const words = subtitle.text.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return null;
+
+  const timings = calculateWordTimings(subtitle);
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3); // Line spacing
+
+  const filters = [];
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split words into lines if wordsPerLine is set
+  const effectiveWPL = wordsPerLine > 0 ? wordsPerLine : words.length;
+  const lines = [];
+  for (let i = 0; i < words.length; i += effectiveWPL) {
+    lines.push(words.slice(i, Math.min(i + effectiveWPL, words.length)));
+  }
+
+  const totalLines = lines.length;
+  const totalBlockHeight = totalLines * lineHeight;
+
+  // Calculate base Y position based on alignment
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50; // Start from top
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalBlockHeight})/2`; // Center vertically
+  } else { // bottom
+    baseY = `h-${totalBlockHeight}-50`; // Start from bottom
+  }
+
+  let wordIndex = 0;
+  lines.forEach((lineWords, lineIndex) => {
+    const { positions: linePositions, totalWidth } = calculateWordPositions(lineWords, fontSizeNum);
+
+    // Y position for this line
+    const yOffset = lineIndex * lineHeight;
+    const yExpr = typeof baseY === 'string' ? `${baseY}+${yOffset}` : `${baseY + yOffset}`;
+
+    // Draw all words in this line in base color
+    lineWords.forEach((word, i) => {
+      const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
+      const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${baseColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${subtitle.startTime},${subtitle.endTime})'`
+      );
+    });
+
+    // Add highlight for words in this line
+    lineWords.forEach((word, i) => {
+      const globalIdx = wordIndex + i;
+      const timing = timings[globalIdx];
+      const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
+      const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${baseColor}:x=${xExpr}:y=${yExpr}:box=1:boxcolor=${highlightColor}@0.7:boxborderw=6:borderw=2:bordercolor=black:enable='between(t,${timing.start},${timing.end})'`
+      );
+    });
+
+    wordIndex += lineWords.length;
+  });
+
+  return filters.join(',');
+}
+
+// Create word-by-word fill filter (progressive color change that stays)
+function createWordFillFilter(subtitle, font, baseColor, fillColor, position, bgColor, fontSize, wordsPerLine = 0) {
+  const words = subtitle.text.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return null;
+
+  const timings = calculateWordTimings(subtitle);
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.2); // Line spacing
+
+  const filters = [];
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split words into lines if wordsPerLine is set
+  const effectiveWPL = wordsPerLine > 0 ? wordsPerLine : words.length;
+  const lines = [];
+  for (let i = 0; i < words.length; i += effectiveWPL) {
+    lines.push(words.slice(i, Math.min(i + effectiveWPL, words.length)));
+  }
+
+  const totalLines = lines.length;
+  const totalBlockHeight = totalLines * lineHeight;
+
+  // Calculate base Y position based on alignment
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50; // Start from top
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalBlockHeight})/2`; // Center vertically
+  } else { // bottom
+    baseY = `h-${totalBlockHeight}-50`; // Start from bottom
+  }
+
+  let wordIndex = 0;
+  lines.forEach((lineWords, lineIndex) => {
+    const { positions: linePositions, totalWidth } = calculateWordPositions(lineWords, fontSizeNum);
+
+    // Y position for this line
+    const yOffset = lineIndex * lineHeight;
+    const yExpr = typeof baseY === 'string' ? `${baseY}+${yOffset}` : `${baseY + yOffset}`;
+
+    // Add fill transitions for words in this line
+    lineWords.forEach((word, i) => {
+      const globalIdx = wordIndex + i;
+      const timing = timings[globalIdx];
+      const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
+      const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+      // Base color: visible from subtitle start until word's turn
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${baseColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${subtitle.startTime},${timing.start})'`
+      );
+
+      // Fill color: visible from word's turn until subtitle ends (stays filled)
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${fillColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${timing.start},${subtitle.endTime})'`
+      );
+    });
+
+    wordIndex += lineWords.length;
+  });
+
+  return filters.join(',');
+}
+
 // Helper function to create animation filters
 function createAnimationFilter(subtitle, font, color, position, bgColor, animation, fontSize, index) {
   const { text, startTime, endTime } = subtitle;
@@ -130,7 +314,7 @@ app.post('/api/add-subtitles', upload.single('video'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'No video file uploaded' });
     }
     
-    const { subtitles, style, font, fontSize, color, position, bgColor, animation } = req.body;
+    const { subtitles, style, font, fontSize, color, position, bgColor, animation, effectColor, wordsPerLine } = req.body;
     if (!subtitles) {
       return res.status(400).json({ success: false, error: 'No subtitles provided' });
     }
@@ -155,8 +339,17 @@ app.post('/api/add-subtitles', upload.single('video'), async (req, res) => {
     const selectedPosition = position || 'bottom-center';
     const selectedBgColor = bgColor || 'none';
     const selectedAnimation = animation || 'none';
+    const selectedWordsPerLine = parseInt(wordsPerLine) || 0;
 
-    console.log('Processing video with:', { style, font: selectedFont, fontSize: selectedFontSize, color: selectedColor, position: selectedPosition, bgColor: selectedBgColor, animation: selectedAnimation });
+    // Apply words per line splitting to subtitle text (only for non-word animations)
+    if (selectedWordsPerLine > 0 && selectedAnimation !== 'word-highlight' && selectedAnimation !== 'word-fill') {
+      subtitleData = subtitleData.map(sub => ({
+        ...sub,
+        text: splitTextByWordsPerLine(sub.text, selectedWordsPerLine)
+      }));
+    }
+
+    console.log('Processing video with:', { style, font: selectedFont, fontSize: selectedFontSize, color: selectedColor, position: selectedPosition, bgColor: selectedBgColor, animation: selectedAnimation, wordsPerLine: selectedWordsPerLine });
 
     // Define color mappings (FFmpeg uses BGR format: &HBBGGRR&)
     const colors = {
@@ -293,6 +486,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     // Create animated subtitle filters based on selected animation
     const videoFilters = [];
 
+    // Convert effectColor for word effects (default to yellow if not provided)
+    const selectedEffectColor = effectColor || '&H00D7FF&'; // Default gold/yellow
+    const effectColorHex = convertBGRtoHex(selectedEffectColor);
+
     if (selectedAnimation === 'none') {
       // Generate and write ASS file with embedded styling
       const assContent = generateASSContent();
@@ -302,8 +499,30 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       // Use ass filter (simpler and more reliable than subtitles with force_style)
       const escapedPath = escapeFFmpegPath(subtitlePath);
       videoFilters.push(`ass=${escapedPath}`);
+    } else if (selectedAnimation === 'word-highlight') {
+      // Word-by-word highlight effect (karaoke style with background box)
+      console.log('Creating word-highlight filters for', subtitleData.length, 'subtitles');
+      const baseColorHex = convertBGRtoHex(textColor);
+      subtitleData.forEach((sub, index) => {
+        const highlightFilter = createWordHighlightFilter(sub, selectedFont, baseColorHex, effectColorHex, selectedPosition, selectedBgColor, selectedFontSize, selectedWordsPerLine);
+        console.log(`Word highlight filter ${index}:`, highlightFilter);
+        if (highlightFilter) {
+          videoFilters.push(highlightFilter);
+        }
+      });
+    } else if (selectedAnimation === 'word-fill') {
+      // Word-by-word fill effect (progressive color change that stays)
+      console.log('Creating word-fill filters for', subtitleData.length, 'subtitles');
+      const baseColorHex = convertBGRtoHex(textColor);
+      subtitleData.forEach((sub, index) => {
+        const fillFilter = createWordFillFilter(sub, selectedFont, baseColorHex, effectColorHex, selectedPosition, selectedBgColor, selectedFontSize, selectedWordsPerLine);
+        console.log(`Word fill filter ${index}:`, fillFilter);
+        if (fillFilter) {
+          videoFilters.push(fillFilter);
+        }
+      });
     } else {
-      // Use drawtext approach for animations
+      // Use drawtext approach for other animations
       console.log('Creating animation filters for', subtitleData.length, 'subtitles');
       subtitleData.forEach((sub, index) => {
         const animationFilter = createAnimationFilter(sub, selectedFont, textColor, selectedPosition, selectedBgColor, selectedAnimation, selectedFontSize, index);
