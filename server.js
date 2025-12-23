@@ -90,41 +90,34 @@ function createAnimationFilter(subtitle, font, color, position, bgColor, animati
   };
   const boxStyle = bgColorMap[bgColor] || '';
   const escapedText = text.replace(/'/g, "\\'").replace(/:/g, "\\:");
-  
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
   // Animation effects - simplified for stability
   switch (animation) {
     case 'fade-in':
       // Fade in over 0.5 seconds using alpha expression
-      return `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${textColor}@0xff:x=${pos.x}:y=${pos.y}:alpha='if(lt(t-${startTime},0.5),(t-${startTime})/0.5,1)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-    
+      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}@0xff:x=${pos.x}:y=${pos.y}:alpha='if(lt(t-${startTime},0.5),(t-${startTime})/0.5,1)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
+
     case 'slide-up':
       // Slide up from bottom of screen to target position using linear interpolation
       // y = start + (end - start) * progress, where progress is clamped 0-1
-      return `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y='(h-50)+((${pos.y})-(h-50))*min(1\\,(t-${startTime})/0.8)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-    
+      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y='(h-50)+((${pos.y})-(h-50))*min(1\\,(t-${startTime})/0.8)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
+
     case 'slide-left':
       // Slide left from right side of screen to target position using linear interpolation
       // x = start + (end - start) * progress, where progress is clamped 0-1
-      return `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${textColor}:x='(w)+((${pos.x})-(w))*min(1\\,(t-${startTime})/0.8)':y=${pos.y}:borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-    
-    case 'zoom-in':
-      // Zoom in - start small and grow to full size over 0.6 seconds
-      return `drawtext=text='${escapedText}':fontsize='if(lt(t-${startTime},0.6),20+(${fontSize}-20)*(t-${startTime})/0.6,${fontSize})':fontcolor=${textColor}:x=${pos.x}:y=${pos.y}:borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-    
+      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x='(w)+((${pos.x})-(w))*min(1\\,(t-${startTime})/0.8)':y=${pos.y}:borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
+
     case 'bounce':
       // Bounce effect - oscillate up/down from target position for first 0.5 seconds
       // Wrap pos.y in parentheses to handle expression positions like (h-text_h)/2
-      return `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y='(${pos.y})-if(lt(t-${startTime}\\,0.5)\\,30*sin(6*(t-${startTime}))\\,0)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-    
-    case 'pulse':
-      // Pulse effect - font size oscillates between normal and +8px
-      return `drawtext=text='${escapedText}':fontsize='${fontSize}+if(lt(mod(t-${startTime}\\,1)\\,0.5)\\,8\\,-8)':fontcolor=${textColor}:x=${pos.x}:y=${pos.y}:borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-    
+      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y='(${pos.y})-if(lt(t-${startTime}\\,0.5)\\,30*sin(6*(t-${startTime}))\\,0)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
+
     case 'typewriter':
       // Typewriter effect: text appears progressively using alpha fade
       // Duration scales with text length for a typing-like appearance
       const typeDuration = Math.min(duration * 0.8, Math.max(0.5, text.length * 0.08));
-      return `drawtext=text='${escapedText}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y=${pos.y}:alpha='min(1\\,(t-${startTime})/${typeDuration})':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
+      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y=${pos.y}:alpha='min(1\\,(t-${startTime})/${typeDuration})':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
     
     default:
       return null;

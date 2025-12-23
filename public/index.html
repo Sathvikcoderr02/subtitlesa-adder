@@ -778,17 +778,6 @@
         </label>
         
         <label class="animation-option">
-          <input type="radio" name="animation" value="zoom-in">
-          <div class="animation-card">
-            <div class="animation-preview">
-              <span class="anim-zoom">Aa</span>
-            </div>
-            <div class="animation-name">Zoom In</div>
-            <div class="animation-desc">Scale up</div>
-          </div>
-        </label>
-        
-        <label class="animation-option">
           <input type="radio" name="animation" value="bounce">
           <div class="animation-card">
             <div class="animation-preview">
@@ -798,18 +787,7 @@
             <div class="animation-desc">Bouncy entry</div>
           </div>
         </label>
-        
-        <label class="animation-option">
-          <input type="radio" name="animation" value="pulse">
-          <div class="animation-card">
-            <div class="animation-preview">
-              <span class="anim-pulse">Aa</span>
-            </div>
-            <div class="animation-name">Pulse</div>
-            <div class="animation-desc">Pulsing effect</div>
-          </div>
-        </label>
-        
+
         <label class="animation-option">
           <input type="radio" name="animation" value="typewriter">
           <div class="animation-card">
@@ -850,6 +828,14 @@
     </button>
     
     <div id="status" class="status-message"></div>
+
+    <div id="progressContainer" class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+      <div class="progress-text">Generating video with subtitles...</div>
+    </div>
+
     <div id="result" class="result-section"></div>
   </div>
 

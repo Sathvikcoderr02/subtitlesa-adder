@@ -87,16 +87,17 @@ async function processVideo() {
   
   processBtn.disabled = true;
   showStatus('Processing video... This may take a few minutes', 'processing');
+  showProgress(true);
   result.innerHTML = '';
-  
+
   try {
     const response = await fetch('http://localhost:3000/api/add-subtitles', {
       method: 'POST',
       body: formData
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
       showStatus('Video processed successfully!', 'success');
       result.innerHTML = `
@@ -113,13 +114,23 @@ async function processVideo() {
     showStatus(`Error: ${error.message}`, 'error');
   } finally {
     processBtn.disabled = false;
+    showProgress(false);
   }
 }
 
 function showStatus(message, type) {
   const status = document.getElementById('status');
   status.textContent = message;
-  status.className = type;
+  status.className = 'status-message ' + type;
+}
+
+function showProgress(show) {
+  const progressContainer = document.getElementById('progressContainer');
+  if (show) {
+    progressContainer.style.display = 'block';
+  } else {
+    progressContainer.style.display = 'none';
+  }
 }
 
 // Add initial subtitle
