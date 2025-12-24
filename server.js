@@ -117,12 +117,13 @@ function splitTextByWordsPerLine(text, wordsPerLine) {
 
 // Create word-by-word highlight filter (karaoke style with background box)
 function createWordHighlightFilter(subtitle, font, baseColor, highlightColor, position, bgColor, fontSize, wordsPerLine = 0) {
-  const words = subtitle.text.split(/\s+/).filter(w => w.length > 0);
-  if (words.length === 0) return null;
-
   const timings = calculateWordTimings(subtitle);
+  if (timings.length === 0) return null;
+
+  // Use words from timings for accurate sync
+  const words = timings.map(t => t.word);
   const fontSizeNum = parseInt(fontSize);
-  const lineHeight = Math.round(fontSizeNum * 1.3); // Line spacing
+  const lineHeight = Math.round(fontSizeNum * 1.3);
 
   const filters = [];
   const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
@@ -130,8 +131,10 @@ function createWordHighlightFilter(subtitle, font, baseColor, highlightColor, po
   // Split words into lines if wordsPerLine is set
   const effectiveWPL = wordsPerLine > 0 ? wordsPerLine : words.length;
   const lines = [];
+  const lineTimings = [];
   for (let i = 0; i < words.length; i += effectiveWPL) {
     lines.push(words.slice(i, Math.min(i + effectiveWPL, words.length)));
+    lineTimings.push(timings.slice(i, Math.min(i + effectiveWPL, timings.length)));
   }
 
   const totalLines = lines.length;
@@ -140,22 +143,21 @@ function createWordHighlightFilter(subtitle, font, baseColor, highlightColor, po
   // Calculate base Y position based on alignment
   let baseY;
   if (position.includes('top')) {
-    baseY = 50; // Start from top
+    baseY = 50;
   } else if (position.includes('middle')) {
-    baseY = `(h-${totalBlockHeight})/2`; // Center vertically
-  } else { // bottom
-    baseY = `h-${totalBlockHeight}-50`; // Start from bottom
+    baseY = `(h-${totalBlockHeight})/2`;
+  } else {
+    baseY = `h-${totalBlockHeight}-50`;
   }
 
-  let wordIndex = 0;
   lines.forEach((lineWords, lineIndex) => {
     const { positions: linePositions, totalWidth } = calculateWordPositions(lineWords, fontSizeNum);
+    const currentLineTimings = lineTimings[lineIndex];
 
-    // Y position for this line
     const yOffset = lineIndex * lineHeight;
     const yExpr = typeof baseY === 'string' ? `${baseY}+${yOffset}` : `${baseY + yOffset}`;
 
-    // Draw all words in this line in base color
+    // Draw all words in base color
     lineWords.forEach((word, i) => {
       const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
       const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
@@ -164,18 +166,15 @@ function createWordHighlightFilter(subtitle, font, baseColor, highlightColor, po
       );
     });
 
-    // Add highlight for words in this line
+    // Add highlight with ACTUAL word timing from STT
     lineWords.forEach((word, i) => {
-      const globalIdx = wordIndex + i;
-      const timing = timings[globalIdx];
+      const timing = currentLineTimings[i];
       const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
       const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
       filters.push(
         `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${baseColor}:x=${xExpr}:y=${yExpr}:box=1:boxcolor=${highlightColor}@0.7:boxborderw=6:borderw=2:bordercolor=black:enable='between(t,${timing.start},${timing.end})'`
       );
     });
-
-    wordIndex += lineWords.length;
   });
 
   return filters.join(',');
@@ -183,12 +182,13 @@ function createWordHighlightFilter(subtitle, font, baseColor, highlightColor, po
 
 // Create word-by-word fill filter (progressive color change that stays)
 function createWordFillFilter(subtitle, font, baseColor, fillColor, position, bgColor, fontSize, wordsPerLine = 0) {
-  const words = subtitle.text.split(/\s+/).filter(w => w.length > 0);
-  if (words.length === 0) return null;
-
   const timings = calculateWordTimings(subtitle);
+  if (timings.length === 0) return null;
+
+  // Use words from timings for accurate sync
+  const words = timings.map(t => t.word);
   const fontSizeNum = parseInt(fontSize);
-  const lineHeight = Math.round(fontSizeNum * 1.2); // Line spacing
+  const lineHeight = Math.round(fontSizeNum * 1.2);
 
   const filters = [];
   const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
@@ -196,8 +196,10 @@ function createWordFillFilter(subtitle, font, baseColor, fillColor, position, bg
   // Split words into lines if wordsPerLine is set
   const effectiveWPL = wordsPerLine > 0 ? wordsPerLine : words.length;
   const lines = [];
+  const lineTimings = [];
   for (let i = 0; i < words.length; i += effectiveWPL) {
     lines.push(words.slice(i, Math.min(i + effectiveWPL, words.length)));
+    lineTimings.push(timings.slice(i, Math.min(i + effectiveWPL, timings.length)));
   }
 
   const totalLines = lines.length;
@@ -206,25 +208,23 @@ function createWordFillFilter(subtitle, font, baseColor, fillColor, position, bg
   // Calculate base Y position based on alignment
   let baseY;
   if (position.includes('top')) {
-    baseY = 50; // Start from top
+    baseY = 50;
   } else if (position.includes('middle')) {
-    baseY = `(h-${totalBlockHeight})/2`; // Center vertically
-  } else { // bottom
-    baseY = `h-${totalBlockHeight}-50`; // Start from bottom
+    baseY = `(h-${totalBlockHeight})/2`;
+  } else {
+    baseY = `h-${totalBlockHeight}-50`;
   }
 
-  let wordIndex = 0;
   lines.forEach((lineWords, lineIndex) => {
     const { positions: linePositions, totalWidth } = calculateWordPositions(lineWords, fontSizeNum);
+    const currentLineTimings = lineTimings[lineIndex];
 
-    // Y position for this line
     const yOffset = lineIndex * lineHeight;
     const yExpr = typeof baseY === 'string' ? `${baseY}+${yOffset}` : `${baseY + yOffset}`;
 
-    // Add fill transitions for words in this line
+    // Add fill transitions with ACTUAL word timing from STT
     lineWords.forEach((word, i) => {
-      const globalIdx = wordIndex + i;
-      const timing = timings[globalIdx];
+      const timing = currentLineTimings[i];
       const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
       const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
 
@@ -238,8 +238,6 @@ function createWordFillFilter(subtitle, font, baseColor, fillColor, position, bg
         `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${fillColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${timing.start},${subtitle.endTime})'`
       );
     });
-
-    wordIndex += lineWords.length;
   });
 
   return filters.join(',');
