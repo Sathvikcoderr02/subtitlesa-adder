@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -5,8 +6,10 @@ const fs = require('fs');
 const cors = require('cors');
 const ffmpeg = require('fluent-ffmpeg');
 
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
 const app = express();
-const PORT = 3000;
+const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -46,12 +49,24 @@ function escapeFFmpegPath(filePath) {
     .replace(/\]/g, '\\]');
 }
 
-// Helper function to calculate even word timings for karaoke effects
+// Helper function to get word timings - uses actual timings from STT if available
 function calculateWordTimings(subtitle) {
-  const { text, startTime, endTime } = subtitle;
+  const { text, startTime, endTime, wordTimings } = subtitle;
   const words = text.split(/\s+/).filter(w => w.length > 0);
   if (words.length === 0) return [];
 
+  // If we have actual word timings from STT, use them (much better sync!)
+  if (wordTimings && wordTimings.length > 0) {
+    console.log('Using actual word timings from STT for better sync');
+    return wordTimings.map(wt => ({
+      word: wt.word,
+      start: wt.start,
+      end: wt.end
+    }));
+  }
+
+  // Fallback: calculate evenly distributed timings
+  console.log('Fallback: calculating estimated word timings');
   const duration = endTime - startTime;
   const buffer = duration * 0.05; // 5% buffer at start/end
   const effectiveStart = startTime + buffer;
@@ -579,6 +594,137 @@ function formatSRTTime(seconds) {
   const ms = Math.floor((seconds % 1) * 1000);
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
 }
+
+// Speech-to-Text endpoint using Groq Whisper API
+app.post('/api/transcribe', upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No video file uploaded' });
+    }
+
+    if (!GROQ_API_KEY) {
+      return res.status(500).json({ success: false, error: 'Groq API key not configured' });
+    }
+
+    const videoPath = req.file.path;
+    const audioPath = path.join('uploads', `audio-${Date.now()}.mp3`);
+
+    console.log('Extracting audio from video...');
+
+    // Extract audio from video using ffmpeg
+    await new Promise((resolve, reject) => {
+      ffmpeg(videoPath)
+        .toFormat('mp3')
+        .audioCodec('libmp3lame')
+        .audioChannels(1)
+        .audioFrequency(16000)
+        .output(audioPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    });
+
+    console.log('Audio extracted, sending to Groq Whisper...');
+
+    // Read audio file and send to Groq Whisper API
+    const audioBuffer = fs.readFileSync(audioPath);
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/mp3' });
+
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.mp3');
+    formData.append('model', 'whisper-large-v3');
+    formData.append('response_format', 'verbose_json');
+    formData.append('timestamp_granularities[]', 'word');
+    formData.append('timestamp_granularities[]', 'segment');
+
+    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Groq API error:', errorText);
+      throw new Error(`Groq API error: ${response.status}`);
+    }
+
+    const transcription = await response.json();
+    console.log('Transcription received:', transcription);
+
+    // Clean up files
+    if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
+    if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+
+    // Convert Groq response to our subtitle format with word-level timing
+    const subtitles = [];
+
+    if (transcription.words && transcription.words.length > 0) {
+      // Use word-level timestamps for precise sync
+      // Group words into subtitle segments (roughly 5-8 words per segment)
+      const wordsPerSegment = 6;
+      let currentSegment = { words: [], startTime: null, endTime: null };
+
+      transcription.words.forEach((word, index) => {
+        if (currentSegment.startTime === null) {
+          currentSegment.startTime = word.start;
+        }
+        currentSegment.words.push({
+          word: word.word,
+          start: word.start,
+          end: word.end
+        });
+        currentSegment.endTime = word.end;
+
+        // Create new segment every N words or at natural pauses (gaps > 0.5s)
+        const nextWord = transcription.words[index + 1];
+        const isLastWord = index === transcription.words.length - 1;
+        const hasLongPause = nextWord && (nextWord.start - word.end > 0.5);
+
+        if (isLastWord || currentSegment.words.length >= wordsPerSegment || hasLongPause) {
+          subtitles.push({
+            text: currentSegment.words.map(w => w.word).join(' ').trim(),
+            startTime: currentSegment.startTime,
+            endTime: currentSegment.endTime,
+            wordTimings: currentSegment.words
+          });
+          currentSegment = { words: [], startTime: null, endTime: null };
+        }
+      });
+    } else if (transcription.segments) {
+      // Fallback to segment-level timestamps
+      transcription.segments.forEach((segment) => {
+        subtitles.push({
+          text: segment.text.trim(),
+          startTime: segment.start,
+          endTime: segment.end
+        });
+      });
+    } else if (transcription.text) {
+      // Final fallback: single subtitle
+      subtitles.push({
+        text: transcription.text.trim(),
+        startTime: 0,
+        endTime: transcription.duration || 10
+      });
+    }
+
+    console.log(`Generated ${subtitles.length} subtitle segments with word-level timing`);
+
+    res.json({
+      success: true,
+      subtitles,
+      fullText: transcription.text,
+      hasWordTimings: !!(transcription.words && transcription.words.length > 0)
+    });
+
+  } catch (error) {
+    console.error('Transcription error:', error);
+    res.status(500).json({ success: false, error: 'Transcription failed', details: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

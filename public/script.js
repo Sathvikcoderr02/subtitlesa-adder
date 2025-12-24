@@ -1,4 +1,5 @@
 let subtitleCount = 0;
+let currentMode = 'stt';
 
 document.getElementById('videoFile').addEventListener('change', (e) => {
   const fileName = e.target.files[0]?.name || '';
@@ -14,6 +15,28 @@ document.querySelectorAll('input[name="animation"]').forEach(radio => {
       effectSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
       effectSection.style.display = 'none';
+    }
+  });
+});
+
+// Handle subtitle mode toggle (STT vs Manual)
+document.querySelectorAll('input[name="subtitleMode"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    currentMode = e.target.value;
+    const subtitleSection = document.getElementById('subtitleSection');
+
+    if (currentMode === 'stt') {
+      // Hide manual subtitle section for STT mode
+      subtitleSection.style.display = 'none';
+      document.getElementById('subtitleList').innerHTML = '';
+      subtitleCount = 0;
+    } else {
+      // Show manual subtitle section
+      subtitleSection.style.display = 'block';
+      // Add one subtitle field when switching to manual mode
+      if (document.querySelectorAll('.subtitle-item').length === 0) {
+        addSubtitle();
+      }
     }
   });
 });
@@ -47,39 +70,21 @@ async function processVideo() {
   const status = document.getElementById('status');
   const result = document.getElementById('result');
   const processBtn = document.getElementById('processBtn');
-  
+  const selectedMode = document.querySelector('input[name="subtitleMode"]:checked').value;
+
   if (!videoFile) {
     showStatus('Please select a video file', 'error');
     return;
   }
-  
-  const subtitles = [];
-  const subtitleItems = document.querySelectorAll('.subtitle-item');
-  
-  subtitleItems.forEach(item => {
-    const id = item.id.split('-')[1];
-    const text = document.getElementById(`text-${id}`).value;
-    const startTime = parseFloat(document.getElementById(`start-${id}`).value);
-    const endTime = parseFloat(document.getElementById(`end-${id}`).value);
-    
-    if (text && !isNaN(startTime) && !isNaN(endTime)) {
-      subtitles.push({ text, startTime, endTime });
-    }
-  });
-  
-  if (subtitles.length === 0) {
-    showStatus('Please add at least one subtitle', 'error');
-    return;
-  }
-  
+
+  let subtitles = [];
+
+  // Get style settings
   const selectedStyle = document.querySelector('input[name="subtitleStyle"]:checked').value;
   const selectedFont = document.querySelector('input[name="fontFamily"]:checked').value;
-
-  // Handle font size - check if custom is selected
   let selectedFontSize = document.querySelector('input[name="fontSize"]:checked').value;
   if (selectedFontSize === 'custom') {
     const customValue = parseInt(document.getElementById('customFontSize').value);
-    // Validate custom value is within range (8-200), default to 24 if invalid
     selectedFontSize = (customValue >= 8 && customValue <= 200) ? customValue : 24;
   }
   const selectedColor = document.querySelector('input[name="textColor"]:checked').value;
@@ -89,6 +94,67 @@ async function processVideo() {
   const selectedEffectColor = document.querySelector('input[name="effectColor"]:checked')?.value || '&H00D7FF&';
   const selectedWordsPerLine = parseInt(document.querySelector('input[name="wordsPerLine"]:checked').value) || 0;
 
+  processBtn.disabled = true;
+  result.innerHTML = '';
+
+  // If STT mode, first transcribe the audio
+  if (selectedMode === 'stt') {
+    showStatus('Step 1/2: Transcribing audio with AI... This may take a moment', 'processing');
+    showProgress(true);
+
+    try {
+      const transcribeFormData = new FormData();
+      transcribeFormData.append('video', videoFile);
+
+      const transcribeResponse = await fetch('http://localhost:3001/api/transcribe', {
+        method: 'POST',
+        body: transcribeFormData
+      });
+
+      const transcribeData = await transcribeResponse.json();
+
+      if (!transcribeData.success) {
+        showStatus(`Transcription failed: ${transcribeData.error}`, 'error');
+        processBtn.disabled = false;
+        showProgress(false);
+        return;
+      }
+
+      subtitles = transcribeData.subtitles;
+      showStatus(`Transcription complete! Found ${subtitles.length} segments. Step 2/2: Generating video...`, 'processing');
+
+    } catch (error) {
+      showStatus(`Transcription error: ${error.message}`, 'error');
+      processBtn.disabled = false;
+      showProgress(false);
+      return;
+    }
+  } else {
+    // Manual mode - get subtitles from form
+    const subtitleItems = document.querySelectorAll('.subtitle-item');
+
+    subtitleItems.forEach(item => {
+      const id = item.id.split('-')[1];
+      const text = document.getElementById(`text-${id}`).value;
+      const startTime = parseFloat(document.getElementById(`start-${id}`).value);
+      const endTime = parseFloat(document.getElementById(`end-${id}`).value);
+
+      if (text && !isNaN(startTime) && !isNaN(endTime)) {
+        subtitles.push({ text, startTime, endTime });
+      }
+    });
+
+    if (subtitles.length === 0) {
+      showStatus('Please add at least one subtitle', 'error');
+      processBtn.disabled = false;
+      return;
+    }
+
+    showStatus('Processing video... This may take a few minutes', 'processing');
+    showProgress(true);
+  }
+
+  // Now generate the video with subtitles
   const formData = new FormData();
   formData.append('video', videoFile);
   formData.append('subtitles', JSON.stringify(subtitles));
@@ -101,14 +167,9 @@ async function processVideo() {
   formData.append('animation', selectedAnimation);
   formData.append('effectColor', selectedEffectColor);
   formData.append('wordsPerLine', selectedWordsPerLine);
-  
-  processBtn.disabled = true;
-  showStatus('Processing video... This may take a few minutes', 'processing');
-  showProgress(true);
-  result.innerHTML = '';
 
   try {
-    const response = await fetch('http://localhost:3000/api/add-subtitles', {
+    const response = await fetch('http://localhost:3001/api/add-subtitles', {
       method: 'POST',
       body: formData
     });
@@ -120,9 +181,9 @@ async function processVideo() {
       result.innerHTML = `
         <h3>Your video is ready:</h3>
         <video controls>
-          <source src="http://localhost:3000${data.outputUrl}" type="video/mp4">
+          <source src="http://localhost:3001${data.outputUrl}" type="video/mp4">
         </video>
-        <p><a href="http://localhost:3000${data.outputUrl}" download>Download Video</a></p>
+        <p><a href="http://localhost:3001${data.outputUrl}" download>Download Video</a></p>
       `;
     } else {
       showStatus(`Error: ${data.error}`, 'error');
@@ -150,5 +211,4 @@ function showProgress(show) {
   }
 }
 
-// Add initial subtitle
-addSubtitle();
+// Initialize: STT mode is default, subtitle section is hidden by default in HTML

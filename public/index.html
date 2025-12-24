@@ -59,6 +59,50 @@
       <div id="fileName" class="file-name"></div>
     </div>
 
+    <!-- Subtitle Mode Selection -->
+    <div class="subtitle-mode-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" x2="12" y1="19" y2="22"/>
+        </svg>
+        <h2>Subtitle Mode</h2>
+      </div>
+      <p class="section-hint">Choose how to add subtitles to your video</p>
+      <div class="mode-grid">
+        <label class="mode-option">
+          <input type="radio" name="subtitleMode" value="stt" checked>
+          <div class="mode-card">
+            <div class="mode-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" x2="12" y1="19" y2="22"/>
+              </svg>
+            </div>
+            <div class="mode-name">Speech-to-Text (AI)</div>
+            <div class="mode-desc">Auto-transcribe audio using Groq Whisper</div>
+          </div>
+        </label>
+
+        <label class="mode-option">
+          <input type="radio" name="subtitleMode" value="manual">
+          <div class="mode-card">
+            <div class="mode-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                <path d="m15 5 4 4"/>
+              </svg>
+            </div>
+            <div class="mode-name">Manual Entry</div>
+            <div class="mode-desc">Type subtitles with custom timestamps</div>
+          </div>
+        </label>
+      </div>
+
+    </div>
+
     <div class="style-section card">
       <div class="card-header">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -952,7 +996,7 @@
       </div>
     </div>
 
-    <div class="subtitle-section card">
+    <div class="subtitle-section card" id="subtitleSection" style="display: none;">
       <div class="card-header">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -961,8 +1005,9 @@
         </svg>
         <h2>Subtitle Timeline</h2>
       </div>
+      <p class="section-hint" id="subtitleHint">Add your subtitles with custom timestamps</p>
       <div id="subtitleList" class="subtitle-list"></div>
-      <button onclick="addSubtitle()" class="btn-add">
+      <button onclick="addSubtitle()" class="btn-add" id="addSubtitleBtn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19"/>
           <line x1="5" y1="12" x2="19" y2="12"/>
