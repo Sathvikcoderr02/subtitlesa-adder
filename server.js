@@ -243,6 +243,74 @@ function createWordFillFilter(subtitle, font, baseColor, fillColor, position, bg
   return filters.join(',');
 }
 
+// Create word-by-word color change filter (current word changes color, synced with speech)
+function createWordColorFilter(subtitle, font, baseColor, highlightColor, position, bgColor, fontSize, wordsPerLine = 0) {
+  const timings = calculateWordTimings(subtitle);
+  if (timings.length === 0) return null;
+
+  // Use words from timings for accurate sync
+  const words = timings.map(t => t.word);
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+
+  const filters = [];
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split words into lines if wordsPerLine is set
+  const effectiveWPL = wordsPerLine > 0 ? wordsPerLine : words.length;
+  const lines = [];
+  const lineTimings = [];
+  for (let i = 0; i < words.length; i += effectiveWPL) {
+    lines.push(words.slice(i, Math.min(i + effectiveWPL, words.length)));
+    lineTimings.push(timings.slice(i, Math.min(i + effectiveWPL, timings.length)));
+  }
+
+  const totalLines = lines.length;
+  const totalBlockHeight = totalLines * lineHeight;
+
+  // Calculate base Y position based on alignment
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalBlockHeight})/2`;
+  } else {
+    baseY = `h-${totalBlockHeight}-50`;
+  }
+
+  lines.forEach((lineWords, lineIndex) => {
+    const { positions: linePositions, totalWidth } = calculateWordPositions(lineWords, fontSizeNum);
+    const currentLineTimings = lineTimings[lineIndex];
+
+    const yOffset = lineIndex * lineHeight;
+    const yExpr = typeof baseY === 'string' ? `${baseY}+${yOffset}` : `${baseY + yOffset}`;
+
+    // For each word: show in base color when NOT being spoken, highlight color when spoken
+    lineWords.forEach((word, i) => {
+      const timing = currentLineTimings[i];
+      const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
+      const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+      // Base color: show before and after this word's timing
+      // Before: from subtitle start to word start
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${baseColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${subtitle.startTime},${timing.start})'`
+      );
+      // After: from word end to subtitle end
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${baseColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${timing.end},${subtitle.endTime})'`
+      );
+
+      // Highlight color: during this word's timing (current spoken word)
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${highlightColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${timing.start},${timing.end})'`
+      );
+    });
+  });
+
+  return filters.join(',');
+}
+
 // Helper function to create animation filters
 function createAnimationFilter(subtitle, font, color, position, bgColor, animation, fontSize, index) {
   const { text, startTime, endTime } = subtitle;
@@ -532,6 +600,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         console.log(`Word fill filter ${index}:`, fillFilter);
         if (fillFilter) {
           videoFilters.push(fillFilter);
+        }
+      });
+    } else if (selectedAnimation === 'word-color') {
+      // Word-by-word color change (current spoken word changes color)
+      console.log('Creating word-color filters for', subtitleData.length, 'subtitles');
+      const baseColorHex = convertBGRtoHex(textColor);
+      subtitleData.forEach((sub, index) => {
+        const colorFilter = createWordColorFilter(sub, selectedFont, baseColorHex, effectColorHex, selectedPosition, selectedBgColor, selectedFontSize, selectedWordsPerLine);
+        console.log(`Word color filter ${index}:`, colorFilter);
+        if (colorFilter) {
+          videoFilters.push(colorFilter);
         }
       });
     } else {

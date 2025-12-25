@@ -10,7 +10,7 @@ document.getElementById('videoFile').addEventListener('change', (e) => {
 document.querySelectorAll('input[name="animation"]').forEach(radio => {
   radio.addEventListener('change', (e) => {
     const effectSection = document.getElementById('effectColorSection');
-    if (e.target.value === 'word-highlight' || e.target.value === 'word-fill') {
+    if (e.target.value === 'word-highlight' || e.target.value === 'word-fill' || e.target.value === 'word-color') {
       effectSection.style.display = 'block';
       effectSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
