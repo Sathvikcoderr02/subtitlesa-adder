@@ -634,6 +634,71 @@ function createGlitchFilter(subtitle, font, position, fontSize, wordsPerLine = 0
   return filters.join(',');
 }
 
+// Create 3D extrude effect (multiple layers creating depth)
+function create3DExtrudeFilter(subtitle, font, baseColor, position, fontSize, wordsPerLine = 0) {
+  const { text, startTime, endTime } = subtitle;
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split text into lines if wordsPerLine is set
+  let lines = [text];
+  if (wordsPerLine > 0) {
+    const words = text.split(/\s+/).filter(w => w.length > 0);
+    lines = [];
+    for (let i = 0; i < words.length; i += wordsPerLine) {
+      lines.push(words.slice(i, Math.min(i + wordsPerLine, words.length)).join(' '));
+    }
+  }
+
+  const totalLines = lines.length;
+  const totalHeight = totalLines * lineHeight;
+
+  // Calculate base Y position
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalHeight})/2`;
+  } else {
+    baseY = `h-${totalHeight}-50`;
+  }
+
+  const filters = [];
+  const extrudeDepth = 8; // Number of layers for 3D effect
+
+  // Extrude colors from dark to light
+  const shadowColors = [];
+  for (let i = extrudeDepth; i >= 1; i--) {
+    const shade = Math.floor(30 + (i * 15)); // Creates gradient from dark to lighter
+    shadowColors.push(`0x${shade.toString(16).padStart(2, '0')}${shade.toString(16).padStart(2, '0')}${shade.toString(16).padStart(2, '0')}`);
+  }
+
+  lines.forEach((line, lineIndex) => {
+    const escapedText = line.replace(/'/g, "\\'").replace(/:/g, "\\:");
+    const yOffset = lineIndex * lineHeight;
+    const lineY = typeof baseY === 'string' ? `${baseY}+${yOffset}` : baseY + yOffset;
+
+    // Create extrude layers (back to front)
+    for (let i = extrudeDepth; i >= 1; i--) {
+      const offsetX = i * 2;
+      const offsetY = i * 2;
+      const color = shadowColors[extrudeDepth - i];
+
+      filters.push(
+        `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${color}:x=(w-text_w)/2+${offsetX}:y=${lineY}+${offsetY}:enable='between(t,${startTime},${endTime})'`
+      );
+    }
+
+    // Front face with the selected color
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${baseColor}:x=(w-text_w)/2:y=${lineY}:borderw=1:bordercolor=0x000000:enable='between(t,${startTime},${endTime})'`
+    );
+  });
+
+  return filters.join(',');
+}
+
 // Helper function to create animation filters with multi-line support
 function createAnimationFilter(subtitle, font, color, position, bgColor, animation, fontSize, index, wordsPerLine = 0) {
   const { text, startTime, endTime } = subtitle;
@@ -1033,6 +1098,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         console.log(`Glitch filter ${index}:`, glitchFilter);
         if (glitchFilter) {
           videoFilters.push(glitchFilter);
+        }
+      });
+    } else if (selectedAnimation === '3d-extrude') {
+      // 3D Extrude effect (depth layers)
+      console.log('Creating 3d-extrude filters for', subtitleData.length, 'subtitles');
+      const baseColorHex = convertBGRtoHex(textColor);
+      subtitleData.forEach((sub, index) => {
+        const extrudeFilter = create3DExtrudeFilter(sub, selectedFont, baseColorHex, selectedPosition, selectedFontSize, selectedWordsPerLine);
+        console.log(`3D Extrude filter ${index}:`, extrudeFilter);
+        if (extrudeFilter) {
+          videoFilters.push(extrudeFilter);
         }
       });
     } else {
