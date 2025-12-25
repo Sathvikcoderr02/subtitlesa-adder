@@ -10,7 +10,7 @@ document.getElementById('videoFile').addEventListener('change', (e) => {
 document.querySelectorAll('input[name="animation"]').forEach(radio => {
   radio.addEventListener('change', (e) => {
     const effectSection = document.getElementById('effectColorSection');
-    if (e.target.value === 'word-highlight' || e.target.value === 'word-fill' || e.target.value === 'word-color' || e.target.value === 'stroke') {
+    if (e.target.value === 'word-highlight' || e.target.value === 'word-fill' || e.target.value === 'word-color' || e.target.value === 'stroke' || e.target.value === 'fire-text' || e.target.value === 'ice-text' || e.target.value === 'glitch') {
       effectSection.style.display = 'block';
       effectSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
@@ -93,6 +93,10 @@ async function processVideo() {
   const selectedAnimation = document.querySelector('input[name="animation"]:checked').value;
   const selectedEffectColor = document.querySelector('input[name="effectColor"]:checked')?.value || '&H00D7FF&';
   const selectedWordsPerLine = parseInt(document.querySelector('input[name="wordsPerLine"]:checked').value) || 0;
+  const selectedOutlineColor = document.querySelector('input[name="outlineColor"]:checked').value;
+  const selectedOutlineThickness = parseInt(document.getElementById('outlineThickness').value) || 2;
+  const selectedShadowColor = document.querySelector('input[name="shadowColor"]:checked').value;
+  const selectedShadowDepth = parseInt(document.getElementById('shadowDepth').value) || 1;
 
   processBtn.disabled = true;
   result.innerHTML = '';
@@ -167,6 +171,10 @@ async function processVideo() {
   formData.append('animation', selectedAnimation);
   formData.append('effectColor', selectedEffectColor);
   formData.append('wordsPerLine', selectedWordsPerLine);
+  formData.append('outlineColor', selectedOutlineColor);
+  formData.append('outlineThickness', selectedOutlineThickness);
+  formData.append('shadowColor', selectedShadowColor);
+  formData.append('shadowDepth', selectedShadowDepth);
 
   try {
     const response = await fetch('http://localhost:3001/api/add-subtitles', {
@@ -210,5 +218,14 @@ function showProgress(show) {
     progressContainer.style.display = 'none';
   }
 }
+
+// Slider value display updates
+document.getElementById('outlineThickness').addEventListener('input', (e) => {
+  document.getElementById('outlineThicknessValue').textContent = e.target.value;
+});
+
+document.getElementById('shadowDepth').addEventListener('input', (e) => {
+  document.getElementById('shadowDepthValue').textContent = e.target.value;
+});
 
 // Initialize: STT mode is default, subtitle section is hidden by default in HTML

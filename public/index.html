@@ -559,6 +559,102 @@
       </div>
     </div>
 
+    <!-- Outline/Stroke Settings -->
+    <div class="outline-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="6"/>
+        </svg>
+        <h2>Outline (Stroke)</h2>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">Outline Color</label>
+        <div class="color-picker-row">
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="black" checked>
+            <div class="color-dot" style="background: #000000;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="white">
+            <div class="color-dot" style="background: #FFFFFF; border: 1px solid #ccc;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="red">
+            <div class="color-dot" style="background: #FF0000;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="blue">
+            <div class="color-dot" style="background: #0000FF;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="green">
+            <div class="color-dot" style="background: #00FF00;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="yellow">
+            <div class="color-dot" style="background: #FFFF00;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="purple">
+            <div class="color-dot" style="background: #AA44FF;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="outlineColor" value="none">
+            <div class="color-dot none-dot">X</div>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">Outline Thickness: <span id="outlineThicknessValue">2</span>px</label>
+        <input type="range" id="outlineThickness" name="outlineThickness" min="0" max="10" value="2" class="slider">
+      </div>
+    </div>
+
+    <!-- Shadow Settings -->
+    <div class="shadow-section card">
+      <div class="card-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <rect x="7" y="7" width="18" height="18" rx="2" opacity="0.3"/>
+        </svg>
+        <h2>Shadow</h2>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">Shadow Color</label>
+        <div class="color-picker-row">
+          <label class="color-option-small">
+            <input type="radio" name="shadowColor" value="black" checked>
+            <div class="color-dot" style="background: #000000;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="shadowColor" value="white">
+            <div class="color-dot" style="background: #FFFFFF; border: 1px solid #ccc;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="shadowColor" value="red">
+            <div class="color-dot" style="background: #FF0000;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="shadowColor" value="blue">
+            <div class="color-dot" style="background: #0000FF;"></div>
+          </label>
+          <label class="color-option-small">
+            <input type="radio" name="shadowColor" value="none">
+            <div class="color-dot none-dot">X</div>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">Shadow Depth: <span id="shadowDepthValue">1</span>px</label>
+        <input type="range" id="shadowDepth" name="shadowDepth" min="0" max="10" value="1" class="slider">
+      </div>
+    </div>
+
     <div class="position-section card">
       <div class="card-header">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -896,6 +992,43 @@
             </div>
             <div class="animation-name">Stroke</div>
             <div class="animation-desc">Outline fills with color</div>
+          </div>
+        </label>
+
+        <label class="animation-option">
+          <input type="radio" name="animation" value="fire-text">
+          <div class="animation-card">
+            <div class="animation-preview">
+              <span style="background: linear-gradient(to top, #ff0000, #ff6600, #ffcc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold;">FIRE</span>
+            </div>
+            <div class="animation-name">Fire Text</div>
+            <div class="animation-desc">Flickering fire effect</div>
+          </div>
+        </label>
+
+        <label class="animation-option">
+          <input type="radio" name="animation" value="ice-text">
+          <div class="animation-card">
+            <div class="animation-preview">
+              <span style="background: linear-gradient(to bottom, #ffffff, #87ceeb, #00bfff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold;">ICE</span>
+            </div>
+            <div class="animation-name">Ice Text</div>
+            <div class="animation-desc">Shimmering ice effect</div>
+          </div>
+        </label>
+
+        <label class="animation-option">
+          <input type="radio" name="animation" value="glitch">
+          <div class="animation-card">
+            <div class="animation-preview">
+              <span style="position: relative; font-weight: bold;">
+                <span style="color: #ff0000; position: absolute; left: -2px; top: 0;">GLITCH</span>
+                <span style="color: #00ff00; position: absolute; left: 2px; top: 0;">GLITCH</span>
+                <span style="color: #ffffff;">GLITCH</span>
+              </span>
+            </div>
+            <div class="animation-name">Glitch</div>
+            <div class="animation-desc">Digital distortion effect</div>
           </div>
         </label>
       </div>

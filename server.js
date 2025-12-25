@@ -102,17 +102,32 @@ function convertBGRtoHex(bgrColor) {
 }
 
 // Helper function to split text into lines by words per line
-function splitTextByWordsPerLine(text, wordsPerLine) {
-  if (!wordsPerLine || wordsPerLine <= 0) return text; // No splitting if 0 or not set
+// Split text by words per line - for ASS format (uses \N for line break)
+function splitTextByWordsPerLineASS(text, wordsPerLine) {
+  if (!wordsPerLine || wordsPerLine <= 0) return text;
 
   const words = text.split(/\s+/).filter(w => w.length > 0);
-  if (words.length <= wordsPerLine) return text; // No need to split if already fits
+  if (words.length <= wordsPerLine) return text;
 
   const lines = [];
   for (let i = 0; i < words.length; i += wordsPerLine) {
     lines.push(words.slice(i, i + wordsPerLine).join(' '));
   }
-  return lines.join('\\N'); // \\N is ASS line break
+  return lines.join('\\N'); // \N is ASS line break
+}
+
+// Split text by words per line - for drawtext (uses actual newline)
+function splitTextByWordsPerLine(text, wordsPerLine) {
+  if (!wordsPerLine || wordsPerLine <= 0) return text;
+
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  if (words.length <= wordsPerLine) return text;
+
+  const lines = [];
+  for (let i = 0; i < words.length; i += wordsPerLine) {
+    lines.push(words.slice(i, i + wordsPerLine).join(' '));
+  }
+  return lines.join('\n'); // actual newline for drawtext
 }
 
 // Create word-by-word highlight filter (karaoke style with background box)
@@ -432,10 +447,199 @@ function createStrokeFilter(subtitle, font, baseColor, fillColor, position, bgCo
   return filters.join(',');
 }
 
-// Helper function to create animation filters
-function createAnimationFilter(subtitle, font, color, position, bgColor, animation, fontSize, index) {
+// Create fire text effect (flickering orange/red/yellow colors)
+function createFireTextFilter(subtitle, font, position, fontSize, wordsPerLine = 0) {
+  const { text, startTime, endTime } = subtitle;
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split text into lines if wordsPerLine is set
+  let lines = [text];
+  if (wordsPerLine > 0) {
+    const words = text.split(/\s+/).filter(w => w.length > 0);
+    lines = [];
+    for (let i = 0; i < words.length; i += wordsPerLine) {
+      lines.push(words.slice(i, Math.min(i + wordsPerLine, words.length)).join(' '));
+    }
+  }
+
+  const totalLines = lines.length;
+  const totalHeight = totalLines * lineHeight;
+
+  // Calculate base Y position
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalHeight})/2`;
+  } else {
+    baseY = `h-${totalHeight}-50`;
+  }
+
+  // Fire colors - cycle through red, orange, yellow
+  const fireColors = ['0xff4500', '0xff6600', '0xffcc00', '0xff8c00', '0xff0000'];
+  const filters = [];
+
+  lines.forEach((line, lineIndex) => {
+    const escapedText = line.replace(/'/g, "\\'").replace(/:/g, "\\:");
+    const yOffset = lineIndex * lineHeight;
+    const lineY = typeof baseY === 'string' ? `${baseY}+${yOffset}` : baseY + yOffset;
+
+    // Create flickering effect by rapidly alternating colors based on time
+    // Use multiple overlapping drawtext with different enables for flicker effect
+    fireColors.forEach((color, colorIndex) => {
+      const flickerSpeed = 0.15; // How fast to flicker
+      const offset = colorIndex * flickerSpeed;
+      const cycleDuration = fireColors.length * flickerSpeed;
+
+      // Create a time-based color cycling effect
+      // Each color shows for flickerSpeed seconds, then cycles
+      filters.push(
+        `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${color}:x=(w-text_w)/2:y=${lineY}:borderw=3:bordercolor=0x8b0000:shadowy=2:shadowx=2:shadowcolor=0x330000:alpha='if(lt(mod(t-${startTime}+${offset}\\,${cycleDuration})\\,${flickerSpeed})\\,1\\,0)':enable='between(t,${startTime},${endTime})'`
+      );
+    });
+
+    // Add a constant glow/base layer
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0xff6600:x=(w-text_w)/2:y=${lineY}:borderw=4:bordercolor=0x8b0000:alpha=0.3:enable='between(t,${startTime},${endTime})'`
+    );
+  });
+
+  return filters.join(',');
+}
+
+// Create ice text effect (shimmering blue/cyan/white colors)
+function createIceTextFilter(subtitle, font, position, fontSize, wordsPerLine = 0) {
+  const { text, startTime, endTime } = subtitle;
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split text into lines if wordsPerLine is set
+  let lines = [text];
+  if (wordsPerLine > 0) {
+    const words = text.split(/\s+/).filter(w => w.length > 0);
+    lines = [];
+    for (let i = 0; i < words.length; i += wordsPerLine) {
+      lines.push(words.slice(i, Math.min(i + wordsPerLine, words.length)).join(' '));
+    }
+  }
+
+  const totalLines = lines.length;
+  const totalHeight = totalLines * lineHeight;
+
+  // Calculate base Y position
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalHeight})/2`;
+  } else {
+    baseY = `h-${totalHeight}-50`;
+  }
+
+  // Ice colors - cycle through white, light blue, cyan, deep blue
+  const iceColors = ['0xffffff', '0x87ceeb', '0x00bfff', '0xb0e0e6', '0x00ffff'];
+  const filters = [];
+
+  lines.forEach((line, lineIndex) => {
+    const escapedText = line.replace(/'/g, "\\'").replace(/:/g, "\\:");
+    const yOffset = lineIndex * lineHeight;
+    const lineY = typeof baseY === 'string' ? `${baseY}+${yOffset}` : baseY + yOffset;
+
+    // Create shimmering effect by cycling through ice colors
+    iceColors.forEach((color, colorIndex) => {
+      const shimmerSpeed = 0.12; // Slightly faster shimmer for ice
+      const offset = colorIndex * shimmerSpeed;
+      const cycleDuration = iceColors.length * shimmerSpeed;
+
+      filters.push(
+        `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${color}:x=(w-text_w)/2:y=${lineY}:borderw=3:bordercolor=0x4169e1:shadowy=1:shadowx=1:shadowcolor=0x000080:alpha='if(lt(mod(t-${startTime}+${offset}\\,${cycleDuration})\\,${shimmerSpeed})\\,1\\,0)':enable='between(t,${startTime},${endTime})'`
+      );
+    });
+
+    // Add a constant frost/glow base layer
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0x87ceeb:x=(w-text_w)/2:y=${lineY}:borderw=4:bordercolor=0x4682b4:alpha=0.3:enable='between(t,${startTime},${endTime})'`
+    );
+  });
+
+  return filters.join(',');
+}
+
+// Create glitch effect (RGB splitting and jitter)
+function createGlitchFilter(subtitle, font, position, fontSize, wordsPerLine = 0) {
+  const { text, startTime, endTime } = subtitle;
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split text into lines if wordsPerLine is set
+  let lines = [text];
+  if (wordsPerLine > 0) {
+    const words = text.split(/\s+/).filter(w => w.length > 0);
+    lines = [];
+    for (let i = 0; i < words.length; i += wordsPerLine) {
+      lines.push(words.slice(i, Math.min(i + wordsPerLine, words.length)).join(' '));
+    }
+  }
+
+  const totalLines = lines.length;
+  const totalHeight = totalLines * lineHeight;
+
+  // Calculate base Y position
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalHeight})/2`;
+  } else {
+    baseY = `h-${totalHeight}-50`;
+  }
+
+  const filters = [];
+
+  lines.forEach((line, lineIndex) => {
+    const escapedText = line.replace(/'/g, "\\'").replace(/:/g, "\\:");
+    const yOffset = lineIndex * lineHeight;
+    const lineY = typeof baseY === 'string' ? `${baseY}+${yOffset}` : baseY + yOffset;
+
+    // Red channel - offset left with random jitter
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0xff0000@0.7:x=(w-text_w)/2-4+2*sin(t*30):y=${lineY}+2*cos(t*25):enable='between(t,${startTime},${endTime})'`
+    );
+
+    // Green channel - offset right with different jitter
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0x00ff00@0.7:x=(w-text_w)/2+4+2*cos(t*35):y=${lineY}+2*sin(t*20):enable='between(t,${startTime},${endTime})'`
+    );
+
+    // Blue channel - slight offset with jitter
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0x0000ff@0.7:x=(w-text_w)/2+2*sin(t*40):y=${lineY}-2+2*cos(t*30):enable='between(t,${startTime},${endTime})'`
+    );
+
+    // Main white text on top
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0xffffff:x=(w-text_w)/2:y=${lineY}:borderw=1:bordercolor=black:enable='between(t,${startTime},${endTime})'`
+    );
+
+    // Random glitch flashes (appears/disappears rapidly)
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0x00ffff:x=(w-text_w)/2+8*sin(t*50):y=${lineY}:alpha='if(lt(mod(t*10\\,1)\\,0.1)\\,0.8\\,0)':enable='between(t,${startTime},${endTime})'`
+    );
+  });
+
+  return filters.join(',');
+}
+
+// Helper function to create animation filters with multi-line support
+function createAnimationFilter(subtitle, font, color, position, bgColor, animation, fontSize, index, wordsPerLine = 0) {
   const { text, startTime, endTime } = subtitle;
   const duration = endTime - startTime;
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
 
   // Convert color from &HBBGGRR& format to RGB hex
   const colorHex = color.replace('&H', '').replace('&', '');
@@ -444,22 +648,20 @@ function createAnimationFilter(subtitle, font, color, position, bgColor, animati
   const r = parseInt(colorHex.substr(4, 2), 16);
   const textColor = `0x${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 
-  // Position mapping for drawtext
-  const positions = {
-    'top-left': { x: '50', y: '50' },
-    'top-center': { x: '(w-text_w)/2', y: '50' },
-    'top-right': { x: 'w-text_w-50', y: '50' },
-    'middle-left': { x: '50', y: '(h-text_h)/2' },
-    'middle-center': { x: '(w-text_w)/2', y: '(h-text_h)/2' },
-    'middle-right': { x: 'w-text_w-50', y: '(h-text_h)/2' },
-    'bottom-left': { x: '50', y: 'h-text_h-50' },
-    'bottom-center': { x: '(w-text_w)/2', y: 'h-text_h-50' },
-    'bottom-right': { x: 'w-text_w-50', y: 'h-text_h-50' }
-  };
+  // Split text into lines if wordsPerLine is set
+  let lines = [text];
+  if (wordsPerLine > 0) {
+    const words = text.split(/\s+/).filter(w => w.length > 0);
+    lines = [];
+    for (let i = 0; i < words.length; i += wordsPerLine) {
+      lines.push(words.slice(i, Math.min(i + wordsPerLine, words.length)).join(' '));
+    }
+  }
 
-  const pos = positions[position] || positions['bottom-center'];
+  const totalLines = lines.length;
+  const totalHeight = totalLines * lineHeight;
 
-  // Background color mapping for drawtext box (uses 0xRRGGBBAA format)
+  // Background color mapping for drawtext box
   const bgColorMap = {
     'none': '',
     'black': ':box=1:boxcolor=black@0.5:boxborderw=8',
@@ -475,39 +677,50 @@ function createAnimationFilter(subtitle, font, color, position, bgColor, animati
     'purple': ':box=1:boxcolor=purple@0.5:boxborderw=8'
   };
   const boxStyle = bgColorMap[bgColor] || '';
-  const escapedText = text.replace(/'/g, "\\'").replace(/:/g, "\\:");
   const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
 
-  // Animation effects - simplified for stability
-  switch (animation) {
-    case 'fade-in':
-      // Fade in over 0.5 seconds using alpha expression
-      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}@0xff:x=${pos.x}:y=${pos.y}:alpha='if(lt(t-${startTime},0.5),(t-${startTime})/0.5,1)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-
-    case 'slide-up':
-      // Slide up from bottom of screen to target position using linear interpolation
-      // y = start + (end - start) * progress, where progress is clamped 0-1
-      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y='(h-50)+((${pos.y})-(h-50))*min(1\\,(t-${startTime})/0.8)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-
-    case 'slide-left':
-      // Slide left from right side of screen to target position using linear interpolation
-      // x = start + (end - start) * progress, where progress is clamped 0-1
-      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x='(w)+((${pos.x})-(w))*min(1\\,(t-${startTime})/0.8)':y=${pos.y}:borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-
-    case 'bounce':
-      // Bounce effect - oscillate up/down from target position for first 0.5 seconds
-      // Wrap pos.y in parentheses to handle expression positions like (h-text_h)/2
-      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y='(${pos.y})-if(lt(t-${startTime}\\,0.5)\\,30*sin(6*(t-${startTime}))\\,0)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-
-    case 'typewriter':
-      // Typewriter effect: text appears progressively using alpha fade
-      // Duration scales with text length for a typing-like appearance
-      const typeDuration = Math.min(duration * 0.8, Math.max(0.5, text.length * 0.08));
-      return `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=${pos.x}:y=${pos.y}:alpha='min(1\\,(t-${startTime})/${typeDuration})':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`;
-    
-    default:
-      return null;
+  // Calculate base Y position
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalHeight})/2`;
+  } else {
+    baseY = `h-${totalHeight}-50`;
   }
+
+  // Create filter for each line
+  const filters = [];
+  lines.forEach((line, lineIndex) => {
+    const escapedText = line.replace(/'/g, "\\'").replace(/:/g, "\\:");
+    const yOffset = lineIndex * lineHeight;
+    const lineY = typeof baseY === 'string' ? `${baseY}+${yOffset}` : baseY + yOffset;
+
+    switch (animation) {
+      case 'fade-in':
+        filters.push(`drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=(w-text_w)/2:y=${lineY}:alpha='if(lt(t-${startTime},0.5),(t-${startTime})/0.5,1)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`);
+        break;
+
+      case 'slide-up':
+        filters.push(`drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=(w-text_w)/2:y='(h-50)+((${lineY})-(h-50))*min(1\\,(t-${startTime})/0.8)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`);
+        break;
+
+      case 'slide-left':
+        filters.push(`drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x='(w)+((w-text_w)/2-(w))*min(1\\,(t-${startTime})/0.8)':y=${lineY}:borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`);
+        break;
+
+      case 'bounce':
+        filters.push(`drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=(w-text_w)/2:y='(${lineY})-if(lt(t-${startTime}\\,0.5)\\,30*sin(6*(t-${startTime}))\\,0)':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`);
+        break;
+
+      case 'typewriter':
+        const typeDuration = Math.min(duration * 0.8, Math.max(0.5, line.length * 0.08));
+        filters.push(`drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${textColor}:x=(w-text_w)/2:y=${lineY}:alpha='min(1\\,(t-${startTime})/${typeDuration})':borderw=2:bordercolor=black${boxStyle}:enable='between(t,${startTime},${endTime})'`);
+        break;
+    }
+  });
+
+  return filters.length > 0 ? filters.join(',') : null;
 }
 
 app.post('/api/add-subtitles', upload.single('video'), async (req, res) => {
@@ -516,7 +729,7 @@ app.post('/api/add-subtitles', upload.single('video'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'No video file uploaded' });
     }
     
-    const { subtitles, style, font, fontSize, color, position, bgColor, animation, effectColor, wordsPerLine } = req.body;
+    const { subtitles, style, font, fontSize, color, position, bgColor, animation, effectColor, wordsPerLine, outlineColor, outlineThickness, shadowColor, shadowDepth } = req.body;
     if (!subtitles) {
       return res.status(400).json({ success: false, error: 'No subtitles provided' });
     }
@@ -542,12 +755,17 @@ app.post('/api/add-subtitles', upload.single('video'), async (req, res) => {
     const selectedBgColor = bgColor || 'none';
     const selectedAnimation = animation || 'none';
     const selectedWordsPerLine = parseInt(wordsPerLine) || 0;
+    const selectedOutlineColor = outlineColor || 'black';
+    const selectedOutlineThickness = parseInt(outlineThickness) || 2;
+    const selectedShadowColor = shadowColor || 'black';
+    const selectedShadowDepth = parseInt(shadowDepth) || 1;
 
-    // Apply words per line splitting to subtitle text (only for non-word animations)
-    if (selectedWordsPerLine > 0 && selectedAnimation !== 'word-highlight' && selectedAnimation !== 'word-fill') {
+    // Apply words per line splitting to subtitle text (ONLY for ASS subtitles - animation 'none')
+    // Drawtext animations don't support multi-line text properly
+    if (selectedWordsPerLine > 0 && selectedAnimation === 'none') {
       subtitleData = subtitleData.map(sub => ({
         ...sub,
-        text: splitTextByWordsPerLine(sub.text, selectedWordsPerLine)
+        text: splitTextByWordsPerLineASS(sub.text, selectedWordsPerLine)
       }));
     }
 
@@ -631,9 +849,33 @@ app.post('/api/add-subtitles', upload.single('video'), async (req, res) => {
     const generateASSContent = () => {
       // Get style parameters - use selectedFontSize from user input
       const fontWeight = { modern: 700, bold: 900, neon: 700 }[style] || 400;
-      const outlineSize = selectedBgColor !== 'none' ? 0 : ({ classic: 2, modern: 3, minimal: 1, bold: 4, neon: 2, boxed: 0 }[style] || 2);
-      const shadowSize = selectedBgColor !== 'none' ? 0 : ({ classic: 1, minimal: 2, neon: 3 }[style] || 0);
+
+      // Use user-selected outline thickness (or style default if bg is set)
+      const outlineSize = selectedBgColor !== 'none' ? 0 : selectedOutlineThickness;
+      const shadowSize = selectedBgColor !== 'none' ? 0 : selectedShadowDepth;
       const borderStyle = selectedBgColor !== 'none' ? 4 : ({ minimal: 1, boxed: 4 }[style] || 3);
+
+      // Outline color mapping (ASS uses BGR format: &HBBGGRR&)
+      const outlineColors = {
+        'none': '&H00000000',
+        'black': '&H00000000',
+        'white': '&H00FFFFFF',
+        'red': '&H000000FF',
+        'blue': '&H00FF0000',
+        'green': '&H0000FF00',
+        'yellow': '&H0000FFFF',
+        'purple': '&H00FF44AA'
+      };
+      const outlineColorValue = outlineColors[selectedOutlineColor] || '&H00000000';
+
+      // Shadow color (ASS BackColour is used for shadow when BorderStyle=3)
+      const shadowColors = {
+        'none': '&H00000000',
+        'black': '&H80000000',
+        'white': '&H80FFFFFF',
+        'red': '&H800000FF',
+        'blue': '&H80FF0000'
+      };
 
       // Get background color for ASS (AABBGGRR format)
       const assBackColors = {
@@ -650,7 +892,14 @@ app.post('/api/add-subtitles', upload.single('video'), async (req, res) => {
         'yellow': '&H8000FFFF',
         'purple': '&H80FF00FF'
       };
-      const backColor = assBackColors[selectedBgColor] || '&H00000000';
+
+      // BackColour is used for background (BorderStyle=4) or shadow (BorderStyle=3)
+      let backColor;
+      if (selectedBgColor !== 'none') {
+        backColor = assBackColors[selectedBgColor] || '&H00000000';
+      } else {
+        backColor = shadowColors[selectedShadowColor] || '&H80000000';
+      }
 
       let assContent = `[Script Info]
 Title: Generated Subtitles
@@ -661,7 +910,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,${selectedFont},${selectedFontSize},${textColor},&H000000FF,&H00000000,${backColor},${fontWeight >= 700 ? -1 : 0},0,0,0,100,100,0,0,${borderStyle},${outlineSize},${shadowSize},${positionSettings.Alignment},${positionSettings.MarginL},${positionSettings.MarginR},${positionSettings.MarginV},1
+Style: Default,${selectedFont},${selectedFontSize},${textColor},&H000000FF,${outlineColorValue},${backColor},${fontWeight >= 700 ? -1 : 0},0,0,0,100,100,0,0,${borderStyle},${outlineSize},${shadowSize},${positionSettings.Alignment},${positionSettings.MarginL},${positionSettings.MarginR},${positionSettings.MarginV},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -756,11 +1005,41 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
           videoFilters.push(strokeFilter);
         }
       });
+    } else if (selectedAnimation === 'fire-text') {
+      // Fire text effect (flickering fire colors)
+      console.log('Creating fire-text filters for', subtitleData.length, 'subtitles');
+      subtitleData.forEach((sub, index) => {
+        const fireFilter = createFireTextFilter(sub, selectedFont, selectedPosition, selectedFontSize, selectedWordsPerLine);
+        console.log(`Fire text filter ${index}:`, fireFilter);
+        if (fireFilter) {
+          videoFilters.push(fireFilter);
+        }
+      });
+    } else if (selectedAnimation === 'ice-text') {
+      // Ice text effect (shimmering ice colors)
+      console.log('Creating ice-text filters for', subtitleData.length, 'subtitles');
+      subtitleData.forEach((sub, index) => {
+        const iceFilter = createIceTextFilter(sub, selectedFont, selectedPosition, selectedFontSize, selectedWordsPerLine);
+        console.log(`Ice text filter ${index}:`, iceFilter);
+        if (iceFilter) {
+          videoFilters.push(iceFilter);
+        }
+      });
+    } else if (selectedAnimation === 'glitch') {
+      // Glitch effect (RGB splitting and jitter)
+      console.log('Creating glitch filters for', subtitleData.length, 'subtitles');
+      subtitleData.forEach((sub, index) => {
+        const glitchFilter = createGlitchFilter(sub, selectedFont, selectedPosition, selectedFontSize, selectedWordsPerLine);
+        console.log(`Glitch filter ${index}:`, glitchFilter);
+        if (glitchFilter) {
+          videoFilters.push(glitchFilter);
+        }
+      });
     } else {
       // Use drawtext approach for other animations
       console.log('Creating animation filters for', subtitleData.length, 'subtitles');
       subtitleData.forEach((sub, index) => {
-        const animationFilter = createAnimationFilter(sub, selectedFont, textColor, selectedPosition, selectedBgColor, selectedAnimation, selectedFontSize, index);
+        const animationFilter = createAnimationFilter(sub, selectedFont, textColor, selectedPosition, selectedBgColor, selectedAnimation, selectedFontSize, index, selectedWordsPerLine);
         console.log(`Animation filter ${index}:`, animationFilter);
         if (animationFilter) {
           videoFilters.push(animationFilter);
@@ -891,8 +1170,12 @@ app.post('/api/transcribe', upload.single('video'), async (req, res) => {
         if (currentSegment.startTime === null) {
           currentSegment.startTime = word.start;
         }
+        // Clean the word - remove any special characters, newlines, etc.
+        const cleanWord = word.word.replace(/[\n\r\\]/g, '').trim();
+        if (cleanWord.length === 0) return; // Skip empty words
+
         currentSegment.words.push({
-          word: word.word,
+          word: cleanWord,
           start: word.start,
           end: word.end
         });
@@ -904,23 +1187,30 @@ app.post('/api/transcribe', upload.single('video'), async (req, res) => {
         const hasLongPause = nextWord && (nextWord.start - word.end > 0.5);
 
         if (isLastWord || currentSegment.words.length >= wordsPerSegment || hasLongPause) {
-          subtitles.push({
-            text: currentSegment.words.map(w => w.word).join(' ').trim(),
-            startTime: currentSegment.startTime,
-            endTime: currentSegment.endTime,
-            wordTimings: currentSegment.words
-          });
+          // Create clean text without any escape characters
+          const cleanText = currentSegment.words.map(w => w.word).join(' ').trim().replace(/[\n\r\\]/g, '');
+          if (cleanText.length > 0) {
+            subtitles.push({
+              text: cleanText,
+              startTime: currentSegment.startTime,
+              endTime: currentSegment.endTime,
+              wordTimings: currentSegment.words
+            });
+          }
           currentSegment = { words: [], startTime: null, endTime: null };
         }
       });
     } else if (transcription.segments) {
       // Fallback to segment-level timestamps
       transcription.segments.forEach((segment) => {
-        subtitles.push({
-          text: segment.text.trim(),
-          startTime: segment.start,
-          endTime: segment.end
-        });
+        const cleanText = segment.text.trim().replace(/[\n\r\\]/g, '');
+        if (cleanText.length > 0) {
+          subtitles.push({
+            text: cleanText,
+            startTime: segment.start,
+            endTime: segment.end
+          });
+        }
       });
     } else if (transcription.text) {
       // Final fallback: single subtitle
