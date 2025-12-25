@@ -311,6 +311,127 @@ function createWordColorFilter(subtitle, font, baseColor, highlightColor, positi
   return filters.join(',');
 }
 
+// Create word-by-word reveal filter (words appear one by one as spoken)
+function createWordRevealFilter(subtitle, font, textColor, position, bgColor, fontSize, wordsPerLine = 0) {
+  const timings = calculateWordTimings(subtitle);
+  if (timings.length === 0) return null;
+
+  // Use words from timings for accurate sync
+  const words = timings.map(t => t.word);
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+
+  const filters = [];
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split words into lines if wordsPerLine is set
+  const effectiveWPL = wordsPerLine > 0 ? wordsPerLine : words.length;
+  const lines = [];
+  const lineTimings = [];
+  for (let i = 0; i < words.length; i += effectiveWPL) {
+    lines.push(words.slice(i, Math.min(i + effectiveWPL, words.length)));
+    lineTimings.push(timings.slice(i, Math.min(i + effectiveWPL, timings.length)));
+  }
+
+  const totalLines = lines.length;
+  const totalBlockHeight = totalLines * lineHeight;
+
+  // Calculate base Y position based on alignment
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalBlockHeight})/2`;
+  } else {
+    baseY = `h-${totalBlockHeight}-50`;
+  }
+
+  lines.forEach((lineWords, lineIndex) => {
+    const { positions: linePositions, totalWidth } = calculateWordPositions(lineWords, fontSizeNum);
+    const currentLineTimings = lineTimings[lineIndex];
+
+    const yOffset = lineIndex * lineHeight;
+    const yExpr = typeof baseY === 'string' ? `${baseY}+${yOffset}` : `${baseY + yOffset}`;
+
+    // Each word appears when spoken and stays until subtitle ends
+    lineWords.forEach((word, i) => {
+      const timing = currentLineTimings[i];
+      const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
+      const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+      // Word appears from its start time and stays until subtitle ends
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${textColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${timing.start},${subtitle.endTime})'`
+      );
+    });
+  });
+
+  return filters.join(',');
+}
+
+// Create stroke animation (outline first, then fills with color when spoken)
+function createStrokeFilter(subtitle, font, baseColor, fillColor, position, bgColor, fontSize, wordsPerLine = 0) {
+  const timings = calculateWordTimings(subtitle);
+  if (timings.length === 0) return null;
+
+  // Use words from timings for accurate sync
+  const words = timings.map(t => t.word);
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+
+  const filters = [];
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split words into lines if wordsPerLine is set
+  const effectiveWPL = wordsPerLine > 0 ? wordsPerLine : words.length;
+  const lines = [];
+  const lineTimings = [];
+  for (let i = 0; i < words.length; i += effectiveWPL) {
+    lines.push(words.slice(i, Math.min(i + effectiveWPL, words.length)));
+    lineTimings.push(timings.slice(i, Math.min(i + effectiveWPL, timings.length)));
+  }
+
+  const totalLines = lines.length;
+  const totalBlockHeight = totalLines * lineHeight;
+
+  // Calculate base Y position based on alignment
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalBlockHeight})/2`;
+  } else {
+    baseY = `h-${totalBlockHeight}-50`;
+  }
+
+  lines.forEach((lineWords, lineIndex) => {
+    const { positions: linePositions, totalWidth } = calculateWordPositions(lineWords, fontSizeNum);
+    const currentLineTimings = lineTimings[lineIndex];
+
+    const yOffset = lineIndex * lineHeight;
+    const yExpr = typeof baseY === 'string' ? `${baseY}+${yOffset}` : `${baseY + yOffset}`;
+
+    lineWords.forEach((word, i) => {
+      const timing = currentLineTimings[i];
+      const xExpr = `(w-${totalWidth})/2+${linePositions[i].xOffset}`;
+      const escaped = word.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+      // Outline only (before word is spoken): thick border, transparent-ish text
+      // Use base color for outline with low alpha for text
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${baseColor}@0.3:x=${xExpr}:y=${yExpr}:borderw=3:bordercolor=${baseColor}:enable='between(t,${subtitle.startTime},${timing.start})'`
+      );
+
+      // Filled (when word is spoken): full color text with border
+      filters.push(
+        `drawtext=text='${escaped}':font='${escapedFont}':fontsize=${fontSizeNum}:fontcolor=${fillColor}:x=${xExpr}:y=${yExpr}:borderw=2:bordercolor=black:enable='between(t,${timing.start},${subtitle.endTime})'`
+      );
+    });
+  });
+
+  return filters.join(',');
+}
+
 // Helper function to create animation filters
 function createAnimationFilter(subtitle, font, color, position, bgColor, animation, fontSize, index) {
   const { text, startTime, endTime } = subtitle;
@@ -611,6 +732,28 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         console.log(`Word color filter ${index}:`, colorFilter);
         if (colorFilter) {
           videoFilters.push(colorFilter);
+        }
+      });
+    } else if (selectedAnimation === 'word-reveal') {
+      // Word-by-word reveal (words appear one by one as spoken)
+      console.log('Creating word-reveal filters for', subtitleData.length, 'subtitles');
+      const baseColorHex = convertBGRtoHex(textColor);
+      subtitleData.forEach((sub, index) => {
+        const revealFilter = createWordRevealFilter(sub, selectedFont, baseColorHex, selectedPosition, selectedBgColor, selectedFontSize, selectedWordsPerLine);
+        console.log(`Word reveal filter ${index}:`, revealFilter);
+        if (revealFilter) {
+          videoFilters.push(revealFilter);
+        }
+      });
+    } else if (selectedAnimation === 'stroke') {
+      // Stroke animation (outline first, then fills with color)
+      console.log('Creating stroke filters for', subtitleData.length, 'subtitles');
+      const baseColorHex = convertBGRtoHex(textColor);
+      subtitleData.forEach((sub, index) => {
+        const strokeFilter = createStrokeFilter(sub, selectedFont, baseColorHex, effectColorHex, selectedPosition, selectedBgColor, selectedFontSize, selectedWordsPerLine);
+        console.log(`Stroke filter ${index}:`, strokeFilter);
+        if (strokeFilter) {
+          videoFilters.push(strokeFilter);
         }
       });
     } else {
