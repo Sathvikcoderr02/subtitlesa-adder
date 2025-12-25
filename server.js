@@ -699,6 +699,76 @@ function create3DExtrudeFilter(subtitle, font, baseColor, position, fontSize, wo
   return filters.join(',');
 }
 
+// Create retro wave effect (80s neon synthwave style)
+function createRetroWaveFilter(subtitle, font, position, fontSize, wordsPerLine = 0) {
+  const { text, startTime, endTime } = subtitle;
+  const fontSizeNum = parseInt(fontSize);
+  const lineHeight = Math.round(fontSizeNum * 1.3);
+  const escapedFont = font.replace(/'/g, "\\'").replace(/:/g, "\\:");
+
+  // Split text into lines if wordsPerLine is set
+  let lines = [text];
+  if (wordsPerLine > 0) {
+    const words = text.split(/\s+/).filter(w => w.length > 0);
+    lines = [];
+    for (let i = 0; i < words.length; i += wordsPerLine) {
+      lines.push(words.slice(i, Math.min(i + wordsPerLine, words.length)).join(' '));
+    }
+  }
+
+  const totalLines = lines.length;
+  const totalHeight = totalLines * lineHeight;
+
+  // Calculate base Y position
+  let baseY;
+  if (position.includes('top')) {
+    baseY = 50;
+  } else if (position.includes('middle')) {
+    baseY = `(h-${totalHeight})/2`;
+  } else {
+    baseY = `h-${totalHeight}-50`;
+  }
+
+  const filters = [];
+
+  // Neon colors - magenta, cyan, purple
+  const neonColors = ['0xff00ff', '0x00ffff', '0xff00aa', '0xaa00ff'];
+
+  lines.forEach((line, lineIndex) => {
+    const escapedText = line.replace(/'/g, "\\'").replace(/:/g, "\\:");
+    const yOffset = lineIndex * lineHeight;
+    const lineY = typeof baseY === 'string' ? `${baseY}+${yOffset}` : baseY + yOffset;
+
+    // Cyan glow layer (back)
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0x00ffff@0.5:x=(w-text_w)/2+3:y=${lineY}+3:enable='between(t,${startTime},${endTime})'`
+    );
+
+    // Magenta glow layer
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0xff00ff@0.5:x=(w-text_w)/2-2:y=${lineY}-2:enable='between(t,${startTime},${endTime})'`
+    );
+
+    // Pulsing neon effect - cycle through colors
+    neonColors.forEach((color, colorIndex) => {
+      const pulseSpeed = 0.2;
+      const offset = colorIndex * pulseSpeed;
+      const cycleDuration = neonColors.length * pulseSpeed;
+
+      filters.push(
+        `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=${color}:x=(w-text_w)/2:y=${lineY}:borderw=2:bordercolor=0x000000:alpha='if(lt(mod(t-${startTime}+${offset}\\,${cycleDuration})\\,${pulseSpeed})\\,1\\,0)':enable='between(t,${startTime},${endTime})'`
+      );
+    });
+
+    // Chrome/metallic highlight on top
+    filters.push(
+      `drawtext=text='${escapedText}':font='${escapedFont}':fontsize=${fontSize}:fontcolor=0xffffff@0.3:x=(w-text_w)/2:y=${lineY}-1:enable='between(t,${startTime},${endTime})'`
+    );
+  });
+
+  return filters.join(',');
+}
+
 // Helper function to create animation filters with multi-line support
 function createAnimationFilter(subtitle, font, color, position, bgColor, animation, fontSize, index, wordsPerLine = 0) {
   const { text, startTime, endTime } = subtitle;
@@ -1109,6 +1179,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         console.log(`3D Extrude filter ${index}:`, extrudeFilter);
         if (extrudeFilter) {
           videoFilters.push(extrudeFilter);
+        }
+      });
+    } else if (selectedAnimation === 'retro-wave') {
+      // Retro Wave effect (80s neon synthwave)
+      console.log('Creating retro-wave filters for', subtitleData.length, 'subtitles');
+      subtitleData.forEach((sub, index) => {
+        const retroFilter = createRetroWaveFilter(sub, selectedFont, selectedPosition, selectedFontSize, selectedWordsPerLine);
+        console.log(`Retro Wave filter ${index}:`, retroFilter);
+        if (retroFilter) {
+          videoFilters.push(retroFilter);
         }
       });
     } else {
